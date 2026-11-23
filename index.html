@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#2c4a52" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Điểm Bé Yêu" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <title>Bảng Chấm Điểm Rèn Luyện & Đổi Thưởng Cho Bé</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f3f6f8; -webkit-tap-highlight-color: transparent; }
+    .tab-active { border-bottom: 3px solid #2c4a52; color: #2c4a52; font-weight: 700; }
+    input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+  </style>
+</head>
+<body class="text-slate-800 pb-20">
+
+  <!-- Header -->
+  <header class="bg-[#2c4a52] text-white shadow-md sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div>
+        <h1 class="text-lg sm:text-xl font-bold tracking-wide">BẢNG CHẤM ĐIỂM RÈN LUYỆN & ĐỔI THƯỞNG</h1>
+        <p class="text-xs text-teal-100 mt-0.5">Hỗ trợ iOS & Android • Tự động lưu trên thiết bị</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="exportBackup()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+          Sao lưu (.json)
+        </button>
+        <label class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer transition">
+          Khôi phục
+          <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackup(event)" />
+        </label>
+        <button onclick="resetCurrentWeek()" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+          Tuần mới
+        </button>
+      </div>
+    </div>
+
+    <!-- Kid Selector Tabs -->
+    <div class="bg-white text-slate-600 border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 flex space-x-6">
+        <button id="tab-be1" onclick="switchKid('be1')" class="py-2.5 text-sm tab-active transition">
+          Bé 1 (Hồ sơ 1)
+        </button>
+        <button id="tab-be2" onclick="switchKid('be2')" class="py-2.5 text-sm hover:text-slate-900 transition">
+          Bé 2 (Hồ sơ 2)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 mt-5 space-y-5">
+
+    <!-- Install Guide Banner for iOS & Android -->
+    <div id="installBanner" class="bg-teal-50 border border-teal-200 rounded-xl p-3.5 flex items-start justify-between gap-3 text-xs text-teal-950">
+      <div>
+        <span class="font-bold">Mẹo cài lên iPhone / Android:</span>
+        Mở trang bằng Safari (iOS) chọn <b>Chia sẻ → Thêm vào Màn hình chính</b>, hoặc Chrome (Android) chọn <b>⋮ → Cài đặt ứng dụng / Thêm vào Màn hình chính</b> để dùng toàn màn hình như app.
+      </div>
+      <button onclick="document.getElementById('installBanner').style.display='none'" class="text-teal-700 font-bold px-1.5">✕</button>
+    </div>
+
+    <!-- Metadata & Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase">Tên của bé</label>
+        <input id="kidName" type="text" oninput="updateMeta()" placeholder="Nhập tên bé..."
+          class="mt-1 w-full text-base font-bold text-slate-800 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1" />
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mt-2.5">Tuần theo dõi</label>
+        <input id="weekLabel" type="text" oninput="updateMeta()" placeholder="VD: Tuần 1 (23/11 - 29/11)"
+          class="mt-1 w-full text-xs text-slate-700 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1" />
+      </div>
+
+      <div class="bg-emerald-50 p-4 rounded-xl shadow-sm border border-emerald-200 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold text-emerald-800 uppercase">Tổng điểm cộng tuần này</span>
+        <div id="statPlus" class="text-3xl font-extrabold text-emerald-700 my-1">+0</div>
+        <span class="text-xs text-emerald-600">Ghi nhận thói quen tốt & tự giác</span>
+      </div>
+
+      <div class="bg-rose-50 p-4 rounded-xl shadow-sm border border-rose-200 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold text-rose-800 uppercase">Tổng điểm trừ tuần này</span>
+        <div id="statMinus" class="text-3xl font-extrabold text-rose-700 my-1">0</div>
+        <span class="text-xs text-rose-600">Các lỗi vi phạm cần khắc phục</span>
+      </div>
+
+      <div class="bg-slate-800 text-white p-4 rounded-xl shadow-sm flex flex-col justify-between">
+        <span class="text-[11px] font-semibold text-teal-200 uppercase">Quỹ điểm khả dụng hiện tại</span>
+        <div id="statAvailable" class="text-3xl font-extrabold text-amber-300 my-1">0</div>
+        <span class="text-xs text-slate-300">Bao gồm điểm tuần trước & trừ quà đã đổi</span>
+      </div>
+    </div>
+
+    <!-- Main Tracking Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[860px]">
+          <thead>
+            <tr class="bg-[#2c4a52] text-white text-xs uppercase">
+              <th class="py-3 px-2.5 w-10 text-center">STT</th>
+              <th class="py-3 px-3 w-72">Hành vi / Tiêu chí rèn luyện</th>
+              <th class="py-3 px-2 w-16 text-center">Điểm</th>
+              <th class="py-3 px-1 w-13 text-center">T2</th>
+              <th class="py-3 px-1 w-13 text-center">T3</th>
+              <th class="py-3 px-1 w-13 text-center">T4</th>
+              <th class="py-3 px-1 w-13 text-center">T5</th>
+              <th class="py-3 px-1 w-13 text-center">T6</th>
+              <th class="py-3 px-1 w-13 text-center">T7</th>
+              <th class="py-3 px-1 w-13 text-center">CN</th>
+              <th class="py-3 px-2 w-16 text-center">Số lần</th>
+              <th class="py-3 px-3 w-20 text-center">Tổng</th>
+            </tr>
+          </thead>
+          <tbody id="trackerBody" class="divide-y divide-slate-200 text-sm"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Collapsible Reward Redemption & Fund Summary -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <button type="button" onclick="toggleRewardsPanel()"
+        class="w-full px-5 py-3.5 bg-slate-100 hover:bg-slate-200/70 flex items-center justify-between text-left transition">
+        <div>
+          <span class="text-sm font-bold text-[#2c4a52] uppercase">Mục tiêu đổi thưởng & Tổng kết quỹ điểm tuần</span>
+          <span class="text-xs text-slate-500 ml-2">(Bấm để mở rộng / thu gọn)</span>
+        </div>
+        <span id="rewardToggleIcon" class="text-base font-bold text-[#2c4a52]">▼</span>
+      </button>
+
+      <div id="rewardsPanel" class="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Reward Menu -->
+        <div class="lg:col-span-2 space-y-3 text-sm">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách phần thưởng gợi ý</h3>
+          <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded bg-teal-100 text-teal-900 font-bold text-xs whitespace-nowrap w-fit">10 – 15 điểm</span>
+            <div>
+              <div class="font-semibold text-slate-800">Đặc quyền nhỏ & Gắn kết trong ngày</div>
+              <div class="text-xs text-slate-500">Chọn món tráng miệng, đọc thêm truyện, chọn trò chơi gia đình, tự chọn đồ mặc hoặc thêm giải trí ngắn.</div>
+            </div>
+          </div>
+          <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded bg-indigo-100 text-indigo-900 font-bold text-xs whitespace-nowrap w-fit">25 – 45 điểm</span>
+            <div>
+              <div class="font-semibold text-slate-800">Trải nghiệm, Sở thích & Vui chơi cuối tuần</div>
+              <div class="text-xs text-slate-500">Đi công viên/nhà sách, cùng làm bánh, chơi thể thao cuối tuần, mời bạn chơi hoặc chọn sách/truyện/sticker mới.</div>
+            </div>
+          </div>
+          <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded bg-amber-100 text-amber-900 font-bold text-xs whitespace-nowrap w-fit">50 – 80 điểm</span>
+            <div>
+              <div class="font-semibold text-slate-800">Quà tặng, Khám phá & Mục tiêu tháng</div>
+              <div class="text-xs text-slate-500">Bộ lắp ráp/STEM/đồ chơi yêu thích, dụng cụ thể thao, đi sở thú/dã ngoại/xem phim, hẹn hò riêng hoặc quỹ tiết kiệm.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fund Summary Box -->
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tính quỹ điểm còn lại</h3>
+            <div class="space-y-2.5 text-sm">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-600">1. Điểm tuần trước chuyển sang:</span>
+                <input id="prevPoints" type="number" oninput="updateFund()"
+                  class="w-20 text-center font-bold bg-white border border-slate-300 rounded py-1 px-2 focus:border-[#2c4a52] focus:outline-none" />
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-600">2. Điểm thực đạt tuần này:</span>
+                <span id="netWeekDisplay" class="font-bold text-slate-800 px-2">0</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-600">3. Điểm đã dùng đổi thưởng:</span>
+                <input id="redeemedPoints" type="number" min="0" oninput="updateFund()"
+                  class="w-20 text-center font-bold text-rose-600 bg-white border border-slate-300 rounded py-1 px-2 focus:border-[#2c4a52] focus:outline-none" />
+              </div>
+              <div class="pt-2.5 border-t border-slate-300 flex justify-between items-center">
+                <span class="font-bold text-slate-800">4. Điểm chuyển sang tuần sau:</span>
+                <span id="nextWeekBalance" class="text-xl font-extrabold text-emerald-700">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Ghi chú phần thưởng đã đổi:</label>
+            <textarea id="rewardNote" rows="2" oninput="updateMeta()" placeholder="VD: Đổi 15 điểm lấy 2 truyện đọc thêm tối thứ 6..."
+              class="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:border-[#2c4a52] focus:outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    const CRITERIA = [
+      { id: "p1", type: "plus", title: "Thức dậy và chuẩn bị đi học đúng giờ", desc: "Ra khỏi giường ngay khi được gọi hoặc có chuông báo thức", pts: 2 },
+      { id: "p2", type: "plus", title: "Chủ động chào hỏi, lễ phép với người lớn", desc: "Chào khi đi học, về nhà và nói lời cảm ơn, xin lỗi đúng lúc", pts: 1 },
+      { id: "p3", type: "plus", title: "Tự giác dọn dẹp đồ chơi và góc học tập", desc: "Cất đồ dùng đúng nơi quy định ngay sau khi sử dụng xong", pts: 2 },
+      { id: "p4", type: "plus", title: "Dũng cảm nhận lỗi và trung thực", desc: "Thẳng thắn nhận sai khi mắc lỗi, không đổ thừa hay giấu giếm", pts: 3 },
+      { id: "p5", type: "plus", title: "Hòa thuận, nhường nhịn và giúp đỡ anh/em", desc: "Chơi chung vui vẻ, biết chia sẻ đồ dùng hoặc hỗ trợ nhau", pts: 3 },
+      { id: "p6", type: "plus", title: "Tự mặc quần áo, đi giày tất gọn gàng", desc: "Tự thực hiện vệ sinh và trang phục buổi sáng không cần làm hộ", pts: 2 },
+      { id: "p7", type: "plus", title: "Ăn hết suất cơm đúng giờ quy định", desc: "Hoàn thành bữa ăn trong 25–30 phút, không ngậm hay chơi", pts: 2 },
+      { id: "p8", type: "plus", title: "Ngồi vào bàn học đúng giờ và tập trung", desc: "Hoàn thành bài tập, ngồi đúng tư thế và viết nắn nót", pts: 2 },
+      { id: "p9", type: "plus", title: "Tự soạn sách vở vào cặp theo thời khóa biểu", desc: "Kiểm tra đủ bút, thước, vở bài tập buổi tối trước khi ngủ", pts: 2 },
+      { id: "p10", type: "plus", title: "Đánh răng, rửa mặt đầy đủ trước khi ngủ", desc: "Tự giác vệ sinh cá nhân buổi tối mà không cần nhắc nhở", pts: 1 },
+      { id: "p11", type: "plus", title: "Chủ động hoàn thành toàn bộ bài tập về nhà", desc: "Tự sắp xếp môn học, làm tập trung và kiểm tra lại đúng giờ", pts: 3 },
+      { id: "p12", type: "plus", title: "Tự giác đọc sách hoặc ôn bài/ngoại ngữ thêm", desc: "Duy trì ít nhất 20–30 phút mỗi ngày ngoài bài trên lớp", pts: 3 },
+      { id: "p13", type: "plus", title: "Hoàn thành tốt việc nhà được phân công", desc: "Quét nhà, gấp quần áo, rửa chén, đổ rác hoặc lau bàn ăn", pts: 3 },
+      { id: "p14", type: "plus", title: "Tự đặt báo thức và chuẩn bị đồ từ tối hôm trước", desc: "Chủ động quản lý đồng phục, cặp sách và giờ giấc cá nhân", pts: 2 },
+      { id: "p15", type: "plus", title: "Hướng dẫn em học bài hoặc làm việc cá nhân", desc: "Kiên nhẫn chỉ bài, nhắc em soạn cặp hoặc chơi cùng em an toàn", pts: 3 },
+      { id: "p16", type: "plus", title: "Tự giác đổ rác khi thùng đầy", desc: "Không đợi nhắc nhở, chủ động mang rác đi đổ khi thấy đầy", pts: 2 },
+      { id: "p17", type: "plus", title: "Chủ động gấp chăn màn sau khi thức dậy", desc: "Sắp xếp gối, chăn gọn gàng ngay sau khi ngủ dậy buổi sáng", pts: 2 },
+      { id: "p18", type: "plus", title: "Tự chuẩn bị bình nước cá nhân mang đi học", desc: "Đổ đầy nước sạch và tự bỏ vào balo trước khi ra khỏi nhà", pts: 1 },
+      { id: "p19", type: "plus", title: "Giúp người lớn xách đồ nhẹ nhàng hoặc dọn bàn ăn", desc: "Chủ động phụ lấy bát đũa, dọn mâm hoặc xách đồ vừa sức", pts: 2 },
+      { id: "p20", type: "plus", title: "Tự giác đeo khẩu trang và cất giày dép gọn gàng", desc: "Đeo khẩu trang khi ra ngoài, cất giày dép lên kệ khi về nhà", pts: 2 },
+      { id: "p21", type: "plus", title: "Tự kiểm tra lại bài và sắp xếp góc học tập gọn gàng", desc: "Cất sách vở, dụng cụ học tập ngăn nắp sau khi học xong", pts: 2 },
+
+      { id: "m1", type: "minus", title: "Chậm trễ, lề mề giờ giấc", desc: "Dậy muộn, trì hoãn giờ ăn, giờ tắm hoặc đi ngủ trễ quy định", pts: -2 },
+      { id: "m2", type: "minus", title: "Bày bừa đồ đạc, không cất đúng chỗ", desc: "Để quần áo bẩn, đồ chơi hoặc sách vở bừa bãi sau khi dùng", pts: -1 },
+      { id: "m3", type: "minus", title: "Nói dối hoặc đổ lỗi cho người khác", desc: "Che giấu khuyết điểm, không nhận trách nhiệm khi làm sai", pts: -3 },
+      { id: "m4", type: "minus", title: "Cãi vã, tranh giành hoặc trêu chọc anh/em", desc: "Gây gổ, la hét hoặc cố tình làm phiền khi anh/em đang học", pts: -2 },
+      { id: "m5", type: "minus", title: "Tự ý lấy đồ của người khác khi chưa xin phép", desc: "Cầm hoặc sử dụng đồ dùng của người khác khi chưa hỏi ý", pts: -3 },
+      { id: "m6", type: "minus", title: "Để thức ăn thừa lãng phí hoặc quên khóa vòi nước", desc: "Bỏ thừa thức ăn quá mức hoặc quên khóa nước sau khi dùng", pts: -2 },
+      { id: "m7", type: "minus", title: "Làm rơi vãi đồ đạc, thức ăn ra sàn không dọn", desc: "Không tự lau dọn khu vực bị rơi vãi sau khi ăn uống/bày biện", pts: -2 },
+      { id: "m8", type: "minus", title: "Ăn vạ, khóc lóc hoặc mè nheo vô cớ", desc: "Không dùng lời nói bình tĩnh để trình bày mong muốn", pts: -2 },
+      { id: "m9", type: "minus", title: "Ngồi học mất tập trung, bỏ dở bài", desc: "Nghịch đồ dùng học tập, đứng dậy đi lại nhiều lần trong giờ học", pts: -2 },
+      { id: "m10", type: "minus", title: "Quên mang đồ dùng học tập hoặc bình nước", desc: "Không kiểm tra cặp sách từ tối hôm trước dẫn đến thiếu đồ", pts: -1 },
+      { id: "m11", type: "minus", title: "Sử dụng thiết bị điện tử quá giờ", desc: "Xem TV, điện thoại hoặc chơi game vượt thời gian thỏa thuận", pts: -3 },
+      { id: "m12", type: "minus", title: "Trì hoãn việc học hoặc làm bài cẩu thả", desc: "Để sát giờ ngủ mới làm bài, viết ẩu hoặc làm cho có lệ", pts: -3 },
+      { id: "m13", type: "minus", title: "Quên nhiệm vụ việc nhà đã phân công", desc: "Không hoàn thành phần việc cá nhân trong ngày dù đã nhắc", pts: -2 },
+      { id: "m14", type: "minus", title: "Cáu gắt, thái độ thiếu tôn trọng", desc: "Nói trống không, càu nhàu hoặc mất kiên nhẫn với người khác", pts: -2 },
+      { id: "m15", type: "minus", title: "Thái độ hậm hực, dùng từ ngữ chưa chuẩn mực", desc: "Không hợp tác khi được nhắc nhở, nói trống không hoặc cãi lại", pts: -3 }
+    ];
+
+    const STORAGE_KEY = "kid_habit_tracker_v2";
+    let currentKid = "be1";
+    let rewardsExpanded = true;
+
+    function createEmptyProfile(defaultName) {
+      return {
+        name: defaultName,
+        weekLabel: "Tuần hiện tại",
+        prevPoints: 0,
+        redeemedPoints: 0,
+        rewardNote: "",
+        counts: {}
+      };
+    }
+
+    let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+      be1: createEmptyProfile("Bé 1"),
+      be2: createEmptyProfile("Bé 2")
+    };
+
+    function toggleRewardsPanel() {
+      rewardsExpanded = !rewardsExpanded;
+      document.getElementById("rewardsPanel").classList.toggle("hidden", !rewardsExpanded);
+      document.getElementById("rewardToggleIcon").innerText = rewardsExpanded ? "▼" : "▶";
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      document.getElementById("tab-be1").innerText = appData.be1.name || "Bé 1";
+      document.getElementById("tab-be2").innerText = appData.be2.name || "Bé 2";
+    }
+
+    function switchKid(kidKey) {
+      currentKid = kidKey;
+      document.getElementById("tab-be1").className = kidKey === "be1" ? "py-2.5 text-sm tab-active transition" : "py-2.5 text-sm hover:text-slate-900 transition";
+      document.getElementById("tab-be2").className = kidKey === "be2" ? "py-2.5 text-sm tab-active transition" : "py-2.5 text-sm hover:text-slate-900 transition";
+      renderAll();
+    }
+
+    function renderAll() {
+      const profile = appData[currentKid];
+      document.getElementById("kidName").value = profile.name;
+      document.getElementById("weekLabel").value = profile.weekLabel;
+      document.getElementById("prevPoints").value = profile.prevPoints;
+      document.getElementById("redeemedPoints").value = profile.redeemedPoints;
+      document.getElementById("rewardNote").value = profile.rewardNote || "";
+
+      const tbody = document.getElementById("trackerBody");
+      tbody.innerHTML = `
+        <tr class="bg-[#d8e8e2]">
+          <td colspan="12" class="py-2 px-4 font-bold text-xs uppercase text-[#1f363d]">
+            Phần I: Cộng điểm — Thói quen tốt & Khích lệ
+          </td>
+        </tr>
+      `;
+      CRITERIA.filter(c => c.type === "plus").forEach((item, idx) => tbody.appendChild(createRow(item, idx + 1)));
+
+      tbody.innerHTML += `
+        <tr class="bg-emerald-50 font-bold text-emerald-800 border-t-2 border-emerald-300">
+          <td colspan="3" class="py-2 px-4 text-right text-xs uppercase">Tổng cộng điểm khích lệ:</td>
+          ${[0,1,2,3,4,5,6].map(d => `<td id="dayPlus-${d}" class="py-2 px-1 text-center text-xs">+0</td>`).join("")}
+          <td id="cntPlusTotal" class="py-2 px-2 text-center text-xs">0</td>
+          <td id="ptsPlusTotal" class="py-2 px-3 text-center text-sm">+0</td>
+        </tr>
+        <tr class="bg-[#f4dfd8]">
+          <td colspan="12" class="py-2 px-4 font-bold text-xs uppercase text-[#1f363d]">
+            Phần II: Trừ điểm — Vi phạm cần khắc phục
+          </td>
+        </tr>
+      `;
+      CRITERIA.filter(c => c.type === "minus").forEach((item, idx) => tbody.appendChild(createRow(item, idx + 1)));
+
+      tbody.innerHTML += `
+        <tr class="bg-rose-50 font-bold text-rose-800 border-t-2 border-rose-300">
+          <td colspan="3" class="py-2 px-4 text-right text-xs uppercase">Tổng điểm bị trừ:</td>
+          ${[0,1,2,3,4,5,6].map(d => `<td id="dayMinus-${d}" class="py-2 px-1 text-center text-xs">0</td>`).join("")}
+          <td id="cntMinusTotal" class="py-2 px-2 text-center text-xs">0</td>
+          <td id="ptsMinusTotal" class="py-2 px-3 text-center text-sm">0</td>
+        </tr>
+        <tr class="bg-slate-200 font-extrabold text-slate-900 border-t-2 border-slate-400">
+          <td colspan="3" class="py-2.5 px-4 text-right text-xs uppercase">Tổng điểm thực đạt trong tuần (Cộng - Trừ):</td>
+          ${[0,1,2,3,4,5,6].map(d => `<td id="dayNet-${d}" class="py-2 px-1 text-center text-xs">0</td>`).join("")}
+          <td id="cntNetTotal" class="py-2 px-2 text-center text-xs">0</td>
+          <td id="ptsNetTotal" class="py-2 px-3 text-center text-sm">0</td>
+        </tr>
+      `;
+
+      recalculate();
+      saveData();
+    }
+
+    function createRow(item, stt) {
+      const profile = appData[currentKid];
+      const arr = profile.counts[item.id] || [0, 0, 0, 0, 0, 0, 0];
+      const tr = document.createElement("tr");
+      tr.className = "hover:bg-slate-50 transition";
+
+      const isPlus = item.type === "plus";
+      const badgeClass = isPlus ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50";
+      const ptsLabel = item.pts > 0 ? `+${item.pts}` : `${item.pts}`;
+
+      let dayInputsHtml = "";
+      for (let d = 0; d < 7; d++) {
+        const val = arr[d] || "";
+        const highlight = arr[d] > 0 ? (isPlus ? "bg-emerald-100/70 font-bold text-emerald-900" : "bg-rose-100/70 font-bold text-rose-900") : "bg-white";
+        dayInputsHtml += `
+          <td class="p-1 text-center">
+            <input type="number" min="0" max="20" value="${val}" placeholder="0"
+              onchange="onCountChange('${item.id}', ${d}, this)"
+              class="w-11 text-center text-xs border border-slate-200 rounded py-1 focus:border-[#2c4a52] focus:outline-none ${highlight}" />
+          </td>
+        `;
+      }
+
+      tr.innerHTML = `
+        <td class="py-2 px-2.5 text-center text-xs text-slate-500">${stt}</td>
+        <td class="py-2 px-3">
+          <div class="font-medium text-slate-800 leading-snug">${item.title}</div>
+          <div class="text-[11px] text-slate-500 leading-tight mt-0.5">${item.desc}</div>
+        </td>
+        <td class="py-2 px-2 text-center">
+          <span class="inline-block px-2 py-0.5 rounded font-bold text-xs ${badgeClass}">${ptsLabel}</span>
+        </td>
+        ${dayInputsHtml}
+        <td id="rowCnt-${item.id}" class="py-2 px-2 text-center text-xs font-medium text-slate-600">0</td>
+        <td id="rowPts-${item.id}" class="py-2 px-3 text-center text-xs font-bold ${isPlus ? 'text-emerald-700' : 'text-rose-700'}">0</td>
+      `;
+      return tr;
+    }
+
+    function onCountChange(itemId, dayIndex, inputEl) {
+      const val = Math.max(0, parseInt(inputEl.value) || 0);
+      inputEl.value = val === 0 ? "" : val;
+      const profile = appData[currentKid];
+      if (!profile.counts[itemId]) profile.counts[itemId] = [0, 0, 0, 0, 0, 0, 0];
+      profile.counts[itemId][dayIndex] = val;
+
+      const isPlus = itemId.startsWith("p");
+      inputEl.className = `w-11 text-center text-xs border border-slate-200 rounded py-1 focus:border-[#2c4a52] focus:outline-none ${
+        val > 0 ? (isPlus ? "bg-emerald-100/70 font-bold text-emerald-900" : "bg-rose-100/70 font-bold text-rose-900") : "bg-white"
+      }`;
+      recalculate();
+      saveData();
+    }
+
+    function recalculate() {
+      const profile = appData[currentKid];
+      let dayPlus = [0,0,0,0,0,0,0], dayMinus = [0,0,0,0,0,0,0];
+      let cntPlus = 0, ptsPlus = 0, cntMinus = 0, ptsMinus = 0;
+
+      CRITERIA.forEach(item => {
+        const arr = profile.counts[item.id] || [0,0,0,0,0,0,0];
+        const rowCnt = arr.reduce((a, b) => a + b, 0);
+        const rowPts = rowCnt * item.pts;
+
+        document.getElementById(`rowCnt-${item.id}`).innerText = rowCnt;
+        document.getElementById(`rowPts-${item.id}`).innerText = rowPts > 0 ? `+${rowPts}` : `${rowPts}`;
+
+        for (let d = 0; d < 7; d++) {
+          if (item.type === "plus") dayPlus[d] += arr[d] * item.pts;
+          else dayMinus[d] += arr[d] * item.pts;
+        }
+        if (item.type === "plus") { cntPlus += rowCnt; ptsPlus += rowPts; }
+        else { cntMinus += rowCnt; ptsMinus += rowPts; }
+      });
+
+      for (let d = 0; d < 7; d++) {
+        document.getElementById(`dayPlus-${d}`).innerText = dayPlus[d] > 0 ? `+${dayPlus[d]}` : "0";
+        document.getElementById(`dayMinus-${d}`).innerText = `${dayMinus[d]}`;
+        const netD = dayPlus[d] + dayMinus[d];
+        document.getElementById(`dayNet-${d}`).innerText = netD > 0 ? `+${netD}` : `${netD}`;
+      }
+
+      document.getElementById("cntPlusTotal").innerText = cntPlus;
+      document.getElementById("ptsPlusTotal").innerText = `+${ptsPlus}`;
+      document.getElementById("cntMinusTotal").innerText = cntMinus;
+      document.getElementById("ptsMinusTotal").innerText = `${ptsMinus}`;
+
+      const netWeek = ptsPlus + ptsMinus;
+      document.getElementById("cntNetTotal").innerText = cntPlus + cntMinus;
+      document.getElementById("ptsNetTotal").innerText = netWeek > 0 ? `+${netWeek}` : `${netWeek}`;
+
+      document.getElementById("statPlus").innerText = `+${ptsPlus}`;
+      document.getElementById("statMinus").innerText = `${ptsMinus}`;
+      document.getElementById("netWeekDisplay").innerText = netWeek > 0 ? `+${netWeek}` : `${netWeek}`;
+
+      const available = (parseInt(profile.prevPoints) || 0) + netWeek - (parseInt(profile.redeemedPoints) || 0);
+      document.getElementById("nextWeekBalance").innerText = available;
+      document.getElementById("statAvailable").innerText = available;
+    }
+
+    function updateMeta() {
+      const profile = appData[currentKid];
+      profile.name = document.getElementById("kidName").value;
+      profile.weekLabel = document.getElementById("weekLabel").value;
+      profile.rewardNote = document.getElementById("rewardNote").value;
+      saveData();
+    }
+
+    function updateFund() {
+      const profile = appData[currentKid];
+      profile.prevPoints = parseInt(document.getElementById("prevPoints").value) || 0;
+      profile.redeemedPoints = parseInt(document.getElementById("redeemedPoints").value) || 0;
+      recalculate();
+      saveData();
+    }
+
+    function resetCurrentWeek() {
+      if (!confirm("Chuyển sang tuần mới? Điểm còn lại sẽ chuyển thành 'Điểm tuần trước' và bảng tuần được làm mới.")) return;
+      const profile = appData[currentKid];
+      profile.prevPoints = parseInt(document.getElementById("nextWeekBalance").innerText) || 0;
+      profile.redeemedPoints = 0;
+      profile.rewardNote = "";
+      profile.counts = {};
+      renderAll();
+    }
+
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ChamDiemRenLuyen_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    function importBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.be1 && imported.be2) {
+            appData = imported;
+            renderAll();
+            alert("Khôi phục dữ liệu thành công!");
+          }
+        } catch {
+          alert("File sao lưu không hợp lệ.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
