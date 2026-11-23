@@ -21,23 +21,43 @@
       background-attachment: fixed;
       -webkit-tap-highlight-color: transparent;
     }
-    .kid-btn-active { background-color: #2c4a52; color: #ffffff; border-color: #2c4a52; box-shadow: 0 2px 6px rgba(44, 74, 82, 0.25); }
-    .kid-btn-inactive { background-color: #f8fafc; color: #334155; border-color: #cbd5e1; }
+    .kid-card-active {
+      border-color: #2c4a52;
+      background: linear-gradient(135deg, #2c4a52 0%, #3a606a 100%);
+      color: #ffffff;
+      box-shadow: 0 10px 20px -5px rgba(44, 74, 82, 0.35);
+      transform: translateY(-2px);
+    }
+    .kid-card-inactive {
+      border-color: #cbd5e1;
+      background-color: #ffffff;
+      color: #1e293b;
+      opacity: 0.88;
+    }
+    .kid-card-inactive:hover {
+      opacity: 1;
+      border-color: #64748b;
+    }
     input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+    .day-checkbox {
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body id="appBody" class="text-slate-800 pb-20">
 
   <!-- Header -->
   <header id="appHeader" class="bg-[#2c4a52] text-white shadow-md sticky top-0 z-20 transition-all">
-    <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div>
-        <h1 class="text-lg sm:text-xl font-bold tracking-wide">BẢNG CHẤM ĐIỂM RÈN LUYỆN & ĐỔI THƯỞNG</h1>
-        <p class="text-xs text-teal-100 mt-0.5">Chọn từng bé để chấm điểm riêng biệt • Tự động lưu trên thiết bị</p>
+        <h1 class="text-base sm:text-xl font-bold tracking-wide">BẢNG CHẤM ĐIỂM RÈN LUYỆN & ĐỔI THƯỞNG</h1>
+        <p class="text-[11px] text-teal-100">Tích chọn từng ngày hoặc nhập trực tiếp số lần trong tuần • Tự động lưu</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button onclick="toggleThemePanel()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
-          Ảnh giao diện
+          Tùy chỉnh ảnh
         </button>
         <button onclick="exportBackup()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
           Sao lưu (.json)
@@ -55,48 +75,44 @@
     <!-- Custom Theme & Photo Panel (Collapsible) -->
     <div id="themePanel" class="hidden bg-slate-900/95 text-white border-t border-slate-700">
       <div class="max-w-7xl mx-auto px-4 py-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-        <!-- Upload Avatar for Current Kid -->
-        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-3">
-          <div>
-            <div class="font-bold text-amber-300">1. Ảnh đại diện của <span id="themeKidLabel">Bé 1</span></div>
-            <div class="text-slate-300 mt-0.5">Chọn ảnh chân dung bé từ thư viện ảnh</div>
-            <div class="mt-2 flex gap-2">
-              <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
-                Chọn ảnh bé
-                <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatar(event)" />
-              </label>
-              <button type="button" onclick="removeKidAvatar()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
-                Xóa ảnh
-              </button>
-            </div>
-          </div>
-          <img id="avatarPreview" src="" alt="" class="hidden w-14 h-14 rounded-full object-cover border-2 border-amber-300 shrink-0" />
-        </div>
-
-        <!-- Upload Cover Banner for Current Kid -->
         <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col justify-between">
           <div>
-            <div class="font-bold text-amber-300">2. Ảnh bìa đầu trang của bé</div>
-            <div class="text-slate-300 mt-0.5">Hiển thị banner trang trí riêng phía trên bảng điểm</div>
+            <div class="font-bold text-amber-300">1. Ảnh thẻ đại diện của Bé 1</div>
+            <div class="text-slate-300 mt-0.5">Hiển thị trên thẻ chọn hình của Bé 1</div>
           </div>
-          <div class="mt-2 flex gap-2">
+          <div class="mt-2.5 flex gap-2">
             <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
-              Chọn ảnh bìa
-              <input type="file" accept="image/*" class="hidden" onchange="uploadKidBanner(event)" />
+              Chọn ảnh Bé 1
+              <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatarFor('be1', event)" />
             </label>
-            <button type="button" onclick="removeKidBanner()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
-              Xóa ảnh bìa
+            <button type="button" onclick="removeKidAvatarFor('be1')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
+              Mặc định
             </button>
           </div>
         </div>
 
-        <!-- Upload App Background Wallpaper -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col justify-between">
+          <div>
+            <div class="font-bold text-amber-300">2. Ảnh thẻ đại diện của Bé 2</div>
+            <div class="text-slate-300 mt-0.5">Hiển thị trên thẻ chọn hình của Bé 2</div>
+          </div>
+          <div class="mt-2.5 flex gap-2">
+            <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
+              Chọn ảnh Bé 2
+              <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatarFor('be2', event)" />
+            </label>
+            <button type="button" onclick="removeKidAvatarFor('be2')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
+              Mặc định
+            </button>
+          </div>
+        </div>
+
         <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col justify-between">
           <div>
             <div class="font-bold text-amber-300">3. Hình nền toàn ứng dụng</div>
-            <div class="text-slate-300 mt-0.5">Tự chọn hình nền gia đình hoặc hình hoạt hình bé thích</div>
+            <div class="text-slate-300 mt-0.5">Tự chọn hình nền gia đình hoặc hoạt hình</div>
           </div>
-          <div class="mt-2 flex gap-2">
+          <div class="mt-2.5 flex gap-2">
             <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
               Chọn hình nền
               <input type="file" accept="image/*" class="hidden" onchange="uploadWallpaper(event)" />
@@ -108,66 +124,85 @@
         </div>
       </div>
     </div>
-
-    <!-- Kid Selector Bar (Select One Kid at a Time) -->
-    <div class="bg-white/95 backdrop-blur border-b border-slate-200">
-      <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          Chọn bé đang chấm điểm:
-        </div>
-        <div class="grid grid-cols-2 sm:flex gap-2.5 w-full sm:w-auto">
-          <button id="btn-be1" type="button" onclick="switchKid('be1')"
-            class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-active">
-            <img id="btnAvatar-be1" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover border border-white/60" />
-            <span class="kid-label">Bé 1</span>
-            <span id="badge-be1" class="text-[11px] px-2 py-0.5 rounded-full bg-white/20">0 đ</span>
-          </button>
-          <button id="btn-be2" type="button" onclick="switchKid('be2')"
-            class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-inactive">
-            <img id="btnAvatar-be2" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover border border-slate-300" />
-            <span class="kid-label">Bé 2</span>
-            <span id="badge-be2" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">0 đ</span>
-          </button>
-        </div>
-      </div>
-    </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 mt-5 space-y-5">
 
-    <!-- Optional Cover Banner Image for Active Kid -->
-    <div id="kidBannerContainer" class="hidden relative rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-slate-800">
-      <img id="kidBannerImg" src="" alt="Ảnh bìa của bé" class="w-full h-36 sm:h-48 object-cover" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
-        <div class="flex items-center gap-3 text-white">
-          <img id="bannerAvatarImg" src="" alt="" class="hidden w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow" />
-          <div>
-            <div id="bannerKidName" class="text-lg font-extrabold tracking-wide">Bé 1</div>
-            <div id="bannerWeekLabel" class="text-xs text-slate-200">Tuần hiện tại</div>
+    <!-- Visual 2-Card Kid Selector -->
+    <section aria-label="Chọn bé theo hình">
+      <div class="flex items-center justify-between mb-2.5">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Chọn bé để chấm điểm (Chạm vào hình của bé):</span>
+        <span class="text-xs text-slate-500">Bấm biểu tượng 📷 trên từng hình để đổi ảnh</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3.5 sm:gap-5">
+        <!-- Card 1: Bé 1 -->
+        <div id="card-be1" onclick="switchKid('be1')"
+          class="kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none">
+          <div class="relative shrink-0">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-amber-300 shadow-md bg-teal-900 flex items-center justify-center">
+              <img id="cardImg-be1" src="" alt="Hình Bé 1" class="w-full h-full object-cover" />
+            </div>
+            <label onclick="event.stopPropagation()" title="Đổi ảnh Bé 1"
+              class="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow cursor-pointer text-xs font-bold border border-white">
+              📷
+              <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatarFor('be1', event)" />
+            </label>
+          </div>
+          <div class="text-center sm:text-left flex-1 min-w-0">
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <span id="statusDot-be1" class="inline-block w-2.5 h-2.5 rounded-full bg-amber-300 animate-pulse"></span>
+              <span id="statusText-be1" class="text-[11px] font-bold uppercase tracking-wider text-amber-200">Đang chọn</span>
+            </div>
+            <div id="cardName-be1" class="text-lg sm:text-xl font-extrabold truncate mt-0.5">Bé 1</div>
+            <div class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20" id="cardPointsWrap-be1">
+              <span>Quỹ điểm:</span>
+              <span id="cardPoints-be1" class="text-amber-300">0 đ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Bé 2 -->
+        <div id="card-be2" onclick="switchKid('be2')"
+          class="kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none">
+          <div class="relative shrink-0">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-slate-300 shadow-md bg-indigo-900 flex items-center justify-center" id="cardFrame-be2">
+              <img id="cardImg-be2" src="" alt="Hình Bé 2" class="w-full h-full object-cover" />
+            </div>
+            <label onclick="event.stopPropagation()" title="Đổi ảnh Bé 2"
+              class="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow cursor-pointer text-xs font-bold border border-white">
+              📷
+              <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatarFor('be2', event)" />
+            </label>
+          </div>
+          <div class="text-center sm:text-left flex-1 min-w-0">
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <span id="statusDot-be2" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+              <span id="statusText-be2" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bấm để chọn</span>
+            </div>
+            <div id="cardName-be2" class="text-lg sm:text-xl font-extrabold truncate mt-0.5">Bé 2</div>
+            <div class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700" id="cardPointsWrap-be2">
+              <span>Quỹ điểm:</span>
+              <span id="cardPoints-be2" class="text-[#2c4a52]">0 đ</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Active Kid Banner -->
-    <div class="bg-white/95 backdrop-blur border-l-4 border-[#2c4a52] rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-3 text-sm">
-        <img id="activeKidAvatar" src="" alt="" class="hidden w-10 h-10 rounded-full object-cover border-2 border-[#2c4a52]" />
-        <div>
-          Đang xem & chấm điểm cho: <strong id="activeKidBannerName" class="text-[#2c4a52] text-base">Bé 1</strong>
-        </div>
+    <!-- Quick Action Bar for Selected Kid -->
+    <div class="bg-white/95 backdrop-blur border-l-4 border-[#2c4a52] rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-2.5">
+      <div class="text-sm">
+        Bảng điểm chi tiết của: <strong id="activeKidBannerName" class="text-[#2c4a52] text-base">Bé 1</strong>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button type="button" onclick="quickMarkDayAllGood()"
           class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
-          ✓ Ngày hôm nay bé ngoan (Tích đủ mục cộng)
+          ✓ Hôm nay bé này ngoan (Tích đủ mục cộng)
         </button>
         <button type="button" onclick="quickMarkBothKidsTodayGood()"
           class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
           ✓✓ Cả 2 bé hôm nay đều ngoan
-        </button>
-        <button type="button" onclick="toggleThemePanel()" class="text-xs font-semibold text-[#2c4a52] hover:underline ml-1">
-          + Ảnh giao diện
         </button>
       </div>
     </div>
@@ -175,23 +210,23 @@
     <!-- Quick Day Selection Bar (T2 -> CN) -->
     <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
       <div class="text-xs font-bold text-slate-600 uppercase tracking-wide">
-        Chọn nhanh cả ngày (Tích / Bỏ tích toàn bộ mục cộng điểm của ngày):
+        Chọn nhanh cả ngày (Tích / Bỏ tích toàn bộ mục cộng điểm):
       </div>
       <div class="flex flex-wrap gap-1.5">
-        <button type="button" onclick="toggleDayAllGood(0)" id="qday-0" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 2</button>
-        <button type="button" onclick="toggleDayAllGood(1)" id="qday-1" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 3</button>
-        <button type="button" onclick="toggleDayAllGood(2)" id="qday-2" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 4</button>
-        <button type="button" onclick="toggleDayAllGood(3)" id="qday-3" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 5</button>
-        <button type="button" onclick="toggleDayAllGood(4)" id="qday-4" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 6</button>
-        <button type="button" onclick="toggleDayAllGood(5)" id="qday-5" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 7</button>
-        <button type="button" onclick="toggleDayAllGood(6)" id="qday-6" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Chủ Nhật</button>
+        <button type="button" onclick="toggleDayAllGood(0)" id="qday-0" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 2</button>
+        <button type="button" onclick="toggleDayAllGood(1)" id="qday-1" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 3</button>
+        <button type="button" onclick="toggleDayAllGood(2)" id="qday-2" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 4</button>
+        <button type="button" onclick="toggleDayAllGood(3)" id="qday-3" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 5</button>
+        <button type="button" onclick="toggleDayAllGood(4)" id="qday-4" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 6</button>
+        <button type="button" onclick="toggleDayAllGood(5)" id="qday-5" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 7</button>
+        <button type="button" onclick="toggleDayAllGood(6)" id="qday-6" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Chủ Nhật</button>
       </div>
     </div>
 
     <!-- Metadata & Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
       <div class="bg-white/95 backdrop-blur p-4 rounded-xl shadow-sm border border-slate-200">
-        <label class="block text-[11px] font-semibold text-slate-500 uppercase">Tên của bé</label>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase">Đổi tên hiển thị của bé</label>
         <input id="kidName" type="text" oninput="updateMeta()" placeholder="Nhập tên bé..."
           class="mt-1 w-full text-base font-bold text-slate-800 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1 bg-transparent" />
         <label class="block text-[11px] font-semibold text-slate-500 uppercase mt-2.5">Tuần theo dõi</label>
@@ -220,22 +255,25 @@
 
     <!-- Main Tracking Table -->
     <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
+        <span>💡 <strong>Cách chấm:</strong> Tích ô từng ngày (<strong>T2–CN</strong>) để tính đủ điểm ngày đó, hoặc nhập trực tiếp số lần vào cột <strong>Số lần</strong> (VD: nhập <code>2</code> nếu thực hiện 2 lần/tuần).</span>
+      </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[940px]">
+        <table class="w-full text-left border-collapse min-w-[920px]">
           <thead>
             <tr class="bg-[#2c4a52] text-white text-xs uppercase">
               <th class="py-3 px-2.5 w-10 text-center">STT</th>
               <th class="py-3 px-3 w-72">Hành vi / Tiêu chí rèn luyện</th>
               <th class="py-3 px-2 w-16 text-center">Điểm</th>
-              <th class="py-3 px-1 w-13 text-center">T2</th>
-              <th class="py-3 px-1 w-13 text-center">T3</th>
-              <th class="py-3 px-1 w-13 text-center">T4</th>
-              <th class="py-3 px-1 w-13 text-center">T5</th>
-              <th class="py-3 px-1 w-13 text-center">T6</th>
-              <th class="py-3 px-1 w-13 text-center">T7</th>
-              <th class="py-3 px-1 w-13 text-center">CN</th>
-              <th class="py-3 px-2 w-20 text-center" title="Chọn tất cả 7 ngày trong tuần cho hàng này">Chọn tất cả</th>
-              <th class="py-3 px-2 w-16 text-center">Số lần</th>
+              <th class="py-3 px-1 w-12 text-center">T2</th>
+              <th class="py-3 px-1 w-12 text-center">T3</th>
+              <th class="py-3 px-1 w-12 text-center">T4</th>
+              <th class="py-3 px-1 w-12 text-center">T5</th>
+              <th class="py-3 px-1 w-12 text-center">T6</th>
+              <th class="py-3 px-1 w-12 text-center">T7</th>
+              <th class="py-3 px-1 w-12 text-center">CN</th>
+              <th class="py-3 px-2 w-20 text-center" title="Tích chọn tất cả 7 ngày trong tuần cho hàng này">Chọn tất cả</th>
+              <th class="py-3 px-2 w-20 text-center" title="Tự động đếm theo ô tích hoặc nhập tay trực tiếp số lần trong tuần">Số lần</th>
               <th class="py-3 px-3 w-20 text-center">Tổng</th>
             </tr>
           </thead>
@@ -323,6 +361,33 @@
       });
     }
 
+    const DEFAULT_AVATAR_1 = "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="#1e4e5f"/>
+        <circle cx="100" cy="78" r="38" fill="#fde68a"/>
+        <circle cx="87" cy="74" r="4.5" fill="#1e293b"/>
+        <circle cx="113" cy="74" r="4.5" fill="#1e293b"/>
+        <path d="M88 90 Q100 102 112 90" stroke="#1e293b" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M62 68 Q100 26 138 68" fill="#f59e0b"/>
+        <path d="M42 185 C42 138 158 138 158 185 Z" fill="#38bdf8"/>
+        <text x="100" y="176" font-family="sans-serif" font-size="22" font-weight="bold" fill="#ffffff" text-anchor="middle">BÉ 1</text>
+      </svg>
+    `);
+
+    const DEFAULT_AVATAR_2 = "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="#3b3355"/>
+        <circle cx="100" cy="78" r="38" fill="#fed7aa"/>
+        <circle cx="87" cy="74" r="4.5" fill="#1e293b"/>
+        <circle cx="113" cy="74" r="4.5" fill="#1e293b"/>
+        <path d="M88 90 Q100 102 112 90" stroke="#1e293b" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <circle cx="62" cy="60" r="14" fill="#fb7185"/>
+        <circle cx="138" cy="60" r="14" fill="#fb7185"/>
+        <path d="M42 185 C42 138 158 138 158 185 Z" fill="#f472b6"/>
+        <text x="100" y="176" font-family="sans-serif" font-size="22" font-weight="bold" fill="#ffffff" text-anchor="middle">BÉ 2</text>
+      </svg>
+    `);
+
     const CRITERIA = [
       { id: "p1", type: "plus", title: "Thức dậy và chuẩn bị đi học đúng giờ", desc: "Ra khỏi giường ngay khi được gọi hoặc có chuông báo thức", pts: 2 },
       { id: "p2", type: "plus", title: "Chủ động chào hỏi, lễ phép với người lớn", desc: "Chào khi đi học, về nhà và nói lời cảm ơn, xin lỗi đúng lúc", pts: 1 },
@@ -363,7 +428,7 @@
       { id: "m15", type: "minus", title: "Thái độ hậm hực, dùng từ ngữ chưa chuẩn mực", desc: "Không hợp tác khi được nhắc nhở, nói trống không hoặc cãi lại", pts: -3 }
     ];
 
-    const STORAGE_KEY = "kid_habit_tracker_v6";
+    const STORAGE_KEY = "kid_habit_tracker_v8";
     let currentKid = "be1";
     let rewardsExpanded = true;
 
@@ -375,8 +440,8 @@
         redeemedPoints: 0,
         rewardNote: "",
         avatar: "",
-        banner: "",
-        counts: {}
+        counts: {},        // { itemId: [0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1] }
+        manualCounts: {}   // { itemId: number } when user types directly into "Số lần"
       };
     }
 
@@ -385,6 +450,20 @@
       be1: createEmptyProfile("Bé 1"),
       be2: createEmptyProfile("Bé 2")
     };
+
+    // Ensure manualCounts exists if older data structure is loaded
+    ["be1", "be2"].forEach(k => {
+      if (!appData[k].manualCounts) appData[k].manualCounts = {};
+      if (!appData[k].counts) appData[k].counts = {};
+    });
+
+    function getEffectiveRowCount(profile, itemId) {
+      if (profile.manualCounts && profile.manualCounts[itemId] !== undefined && profile.manualCounts[itemId] !== null) {
+        return Math.max(0, parseInt(profile.manualCounts[itemId]) || 0);
+      }
+      const arr = profile.counts[itemId] || [0,0,0,0,0,0,0];
+      return arr.reduce((a, b) => a + (b ? 1 : 0), 0);
+    }
 
     function compressImageFile(file, maxDimension, quality, callback) {
       const reader = new FileReader();
@@ -418,36 +497,20 @@
       document.getElementById("themePanel").classList.toggle("hidden");
     }
 
-    function uploadKidAvatar(event) {
+    function uploadKidAvatarFor(kidKey, event) {
       const file = event.target.files[0];
       if (!file) return;
-      compressImageFile(file, 300, 0.82, (dataUrl) => {
-        appData[currentKid].avatar = dataUrl;
+      compressImageFile(file, 400, 0.85, (dataUrl) => {
+        appData[kidKey].avatar = dataUrl;
         saveData();
-        applyCustomPhotos();
+        updateKidCardsUI();
       });
     }
 
-    function removeKidAvatar() {
-      appData[currentKid].avatar = "";
+    function removeKidAvatarFor(kidKey) {
+      appData[kidKey].avatar = "";
       saveData();
-      applyCustomPhotos();
-    }
-
-    function uploadKidBanner(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      compressImageFile(file, 1200, 0.8, (dataUrl) => {
-        appData[currentKid].banner = dataUrl;
-        saveData();
-        applyCustomPhotos();
-      });
-    }
-
-    function removeKidBanner() {
-      appData[currentKid].banner = "";
-      saveData();
-      applyCustomPhotos();
+      updateKidCardsUI();
     }
 
     function uploadWallpaper(event) {
@@ -456,70 +519,29 @@
       compressImageFile(file, 1400, 0.78, (dataUrl) => {
         appData.wallpaper = dataUrl;
         saveData();
-        applyCustomPhotos();
+        applyWallpaper();
       });
     }
 
     function removeWallpaper() {
       appData.wallpaper = "";
       saveData();
-      applyCustomPhotos();
+      applyWallpaper();
     }
 
-    function applyCustomPhotos() {
-      const profile = appData[currentKid];
+    function applyWallpaper() {
       const bodyEl = document.getElementById("appBody");
-
       if (appData.wallpaper) {
         bodyEl.style.backgroundImage = `linear-gradient(rgba(243, 246, 248, 0.78), rgba(243, 246, 248, 0.78)), url('${appData.wallpaper}')`;
       } else {
         bodyEl.style.backgroundImage = "none";
       }
-
-      ["be1", "be2"].forEach(k => {
-        const imgEl = document.getElementById(`btnAvatar-${k}`);
-        if (appData[k].avatar) {
-          imgEl.src = appData[k].avatar;
-          imgEl.classList.remove("hidden");
-        } else {
-          imgEl.classList.add("hidden");
-        }
-      });
-
-      const activeAvatarEl = document.getElementById("activeKidAvatar");
-      const previewAvatarEl = document.getElementById("avatarPreview");
-      const bannerAvatarEl = document.getElementById("bannerAvatarImg");
-      if (profile.avatar) {
-        activeAvatarEl.src = profile.avatar;
-        activeAvatarEl.classList.remove("hidden");
-        previewAvatarEl.src = profile.avatar;
-        previewAvatarEl.classList.remove("hidden");
-        bannerAvatarEl.src = profile.avatar;
-        bannerAvatarEl.classList.remove("hidden");
-      } else {
-        activeAvatarEl.classList.add("hidden");
-        previewAvatarEl.classList.add("hidden");
-        bannerAvatarEl.classList.add("hidden");
-      }
-
-      const bannerContainer = document.getElementById("kidBannerContainer");
-      if (profile.banner) {
-        document.getElementById("kidBannerImg").src = profile.banner;
-        document.getElementById("bannerKidName").innerText = profile.name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
-        document.getElementById("bannerWeekLabel").innerText = profile.weekLabel || "Tuần hiện tại";
-        bannerContainer.classList.remove("hidden");
-      } else {
-        bannerContainer.classList.add("hidden");
-      }
-
-      document.getElementById("themeKidLabel").innerText = profile.name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
     }
 
     function computeKidBalance(profile) {
       let ptsPlus = 0, ptsMinus = 0;
       CRITERIA.forEach(item => {
-        const arr = profile.counts[item.id] || [0,0,0,0,0,0,0];
-        const rowCnt = arr.reduce((a, b) => a + b, 0);
+        const rowCnt = getEffectiveRowCount(profile, item.id);
         const rowPts = rowCnt * item.pts;
         if (item.type === "plus") ptsPlus += rowPts;
         else ptsMinus += rowPts;
@@ -529,34 +551,59 @@
       return { ptsPlus, ptsMinus, netWeek, available };
     }
 
-    function updateKidSelectorUI() {
+    function updateKidCardsUI() {
       const b1 = computeKidBalance(appData.be1);
       const b2 = computeKidBalance(appData.be2);
 
-      const btn1 = document.getElementById("btn-be1");
-      const btn2 = document.getElementById("btn-be2");
-      const badge1 = document.getElementById("badge-be1");
-      const badge2 = document.getElementById("badge-be2");
+      document.getElementById("cardImg-be1").src = appData.be1.avatar || DEFAULT_AVATAR_1;
+      document.getElementById("cardImg-be2").src = appData.be2.avatar || DEFAULT_AVATAR_2;
 
-      btn1.querySelector(".kid-label").innerText = appData.be1.name || "Bé 1";
-      btn2.querySelector(".kid-label").innerText = appData.be2.name || "Bé 2";
-      badge1.innerText = `${b1.available} đ`;
-      badge2.innerText = `${b2.available} đ`;
+      document.getElementById("cardName-be1").innerText = appData.be1.name || "Bé 1";
+      document.getElementById("cardName-be2").innerText = appData.be2.name || "Bé 2";
+
+      document.getElementById("cardPoints-be1").innerText = `${b1.available} đ`;
+      document.getElementById("cardPoints-be2").innerText = `${b2.available} đ`;
+
+      const card1 = document.getElementById("card-be1");
+      const card2 = document.getElementById("card-be2");
 
       if (currentKid === "be1") {
-        btn1.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-active";
-        btn2.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-inactive";
-        badge1.className = "text-[11px] px-2 py-0.5 rounded-full bg-white/20";
-        badge2.className = "text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700";
+        card1.className = "kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
+        card2.className = "kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
+
+        document.getElementById("statusDot-be1").className = "inline-block w-2.5 h-2.5 rounded-full bg-amber-300 animate-pulse";
+        document.getElementById("statusText-be1").className = "text-[11px] font-bold uppercase tracking-wider text-amber-200";
+        document.getElementById("statusText-be1").innerText = "Đang chọn";
+        document.getElementById("cardPointsWrap-be1").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20";
+        document.getElementById("cardPoints-be1").className = "text-amber-300";
+
+        document.getElementById("statusDot-be2").className = "inline-block w-2.5 h-2.5 rounded-full bg-slate-300";
+        document.getElementById("statusText-be2").className = "text-[11px] font-bold uppercase tracking-wider text-slate-400";
+        document.getElementById("statusText-be2").innerText = "Bấm để chọn";
+        document.getElementById("cardPointsWrap-be2").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700";
+        document.getElementById("cardPoints-be2").className = "text-[#2c4a52]";
+
         document.getElementById("activeKidBannerName").innerText = appData.be1.name || "Bé 1";
       } else {
-        btn2.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-active";
-        btn1.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-inactive";
-        badge2.className = "text-[11px] px-2 py-0.5 rounded-full bg-white/20";
-        badge1.className = "text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700";
+        card2.className = "kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
+        card1.className = "kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
+
+        document.getElementById("statusDot-be2").className = "inline-block w-2.5 h-2.5 rounded-full bg-amber-300 animate-pulse";
+        document.getElementById("statusText-be2").className = "text-[11px] font-bold uppercase tracking-wider text-amber-200";
+        document.getElementById("statusText-be2").innerText = "Đang chọn";
+        document.getElementById("cardPointsWrap-be2").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20";
+        document.getElementById("cardPoints-be2").className = "text-amber-300";
+
+        document.getElementById("statusDot-be1").className = "inline-block w-2.5 h-2.5 rounded-full bg-slate-300";
+        document.getElementById("statusText-be1").className = "text-[11px] font-bold uppercase tracking-wider text-slate-400";
+        document.getElementById("statusText-be1").innerText = "Bấm để chọn";
+        document.getElementById("cardPointsWrap-be1").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700";
+        document.getElementById("cardPoints-be1").className = "text-[#2c4a52]";
+
         document.getElementById("activeKidBannerName").innerText = appData.be2.name || "Bé 2";
       }
-      applyCustomPhotos();
+
+      applyWallpaper();
       updateQuickDayButtonsUI();
     }
 
@@ -591,7 +638,7 @@
       } catch (e) {
         alert("Dung lượng ảnh quá lớn, vui lòng chọn ảnh nhẹ hơn.");
       }
-      updateKidSelectorUI();
+      updateKidCardsUI();
     }
 
     function switchKid(kidKey) {
@@ -599,12 +646,50 @@
       renderAll();
     }
 
+    // Checkbox per day (T2 -> CN): checked = 1 full day score, unchecked = 0
+    function onDayCheckboxChange(itemId, dayIndex, checked) {
+      const profile = appData[currentKid];
+      if (!profile.counts[itemId]) profile.counts[itemId] = [0, 0, 0, 0, 0, 0, 0];
+      profile.counts[itemId][dayIndex] = checked ? 1 : 0;
+
+      // Clear manual override so "Số lần" reflects checked days automatically
+      if (profile.manualCounts) delete profile.manualCounts[itemId];
+
+      const rowCnt = profile.counts[itemId].reduce((a, b) => a + (b ? 1 : 0), 0);
+      const cntInput = document.getElementById(`rowCnt-${itemId}`);
+      if (cntInput) cntInput.value = rowCnt;
+
+      const selectAllCb = document.getElementById(`selAll-${itemId}`);
+      if (selectAllCb) selectAllCb.checked = (rowCnt === 7);
+
+      recalculate();
+      saveData();
+    }
+
     // Select or clear all 7 days for a specific row
     function toggleRowSelectAll(itemId, checked) {
       const profile = appData[currentKid];
       const newVal = checked ? 1 : 0;
       profile.counts[itemId] = [newVal, newVal, newVal, newVal, newVal, newVal, newVal];
+      if (profile.manualCounts) delete profile.manualCounts[itemId];
       renderAll();
+    }
+
+    // Direct input in "Số lần" column (e.g., 2 -> 2 * pts = 4, 6 -> 6 * pts = 12)
+    function onManualCountInput(itemId, inputEl) {
+      const profile = appData[currentKid];
+      const raw = inputEl.value.trim();
+      if (raw === "") {
+        if (profile.manualCounts) delete profile.manualCounts[itemId];
+        const checkedCnt = (profile.counts[itemId] || [0,0,0,0,0,0,0]).reduce((a, b) => a + (b ? 1 : 0), 0);
+        inputEl.value = checkedCnt;
+      } else {
+        const val = Math.max(0, parseInt(raw) || 0);
+        if (!profile.manualCounts) profile.manualCounts = {};
+        profile.manualCounts[itemId] = val;
+      }
+      recalculate();
+      saveData();
     }
 
     // Toggle all plus items for a specific weekday index (0=Mon..6=Sun)
@@ -617,39 +702,40 @@
       plusItems.forEach(item => {
         if (!profile.counts[item.id]) profile.counts[item.id] = [0,0,0,0,0,0,0];
         profile.counts[item.id][dayIdx] = newVal;
+        if (profile.manualCounts) delete profile.manualCounts[item.id];
       });
       renderAll();
     }
 
-    // Quick helper: mark all plus items as 1 for today's weekday index for active kid
     function quickMarkDayAllGood() {
       const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
       const jsDay = new Date().getDay();
       const dayIdx = jsDay === 0 ? 6 : jsDay - 1;
       const kidLabel = appData[currentKid].name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
-      if (!confirm(`Đánh dấu tất cả mục cộng điểm cho ${kidLabel} vào ${dayNames[dayIdx]} hôm nay?`)) return;
+      if (!confirm(`Tích chọn tất cả mục cộng điểm cho ${kidLabel} vào ${dayNames[dayIdx]} hôm nay?`)) return;
 
       const profile = appData[currentKid];
       CRITERIA.filter(c => c.type === "plus").forEach(item => {
         if (!profile.counts[item.id]) profile.counts[item.id] = [0,0,0,0,0,0,0];
         profile.counts[item.id][dayIdx] = 1;
+        if (profile.manualCounts) delete profile.manualCounts[item.id];
       });
       renderAll();
     }
 
-    // Quick helper: mark all plus items as 1 for today's weekday index for BOTH kids
     function quickMarkBothKidsTodayGood() {
       const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
       const jsDay = new Date().getDay();
       const dayIdx = jsDay === 0 ? 6 : jsDay - 1;
       const n1 = appData.be1.name || "Bé 1";
       const n2 = appData.be2.name || "Bé 2";
-      if (!confirm(`Đánh dấu tất cả mục cộng điểm cho cả ${n1} và ${n2} vào ${dayNames[dayIdx]} hôm nay?`)) return;
+      if (!confirm(`Tích chọn tất cả mục cộng điểm cho cả ${n1} và ${n2} vào ${dayNames[dayIdx]} hôm nay?`)) return;
 
       ["be1", "be2"].forEach(k => {
         CRITERIA.filter(c => c.type === "plus").forEach(item => {
           if (!appData[k].counts[item.id]) appData[k].counts[item.id] = [0,0,0,0,0,0,0];
           appData[k].counts[item.id][dayIdx] = 1;
+          if (appData[k].manualCounts) delete appData[k].manualCounts[item.id];
         });
       });
       renderAll();
@@ -714,22 +800,26 @@
       const profile = appData[currentKid];
       const arr = profile.counts[item.id] || [0, 0, 0, 0, 0, 0, 0];
       const allSelected = arr.every(v => (parseInt(v) || 0) >= 1);
+      const effectiveCnt = getEffectiveRowCount(profile, item.id);
       const tr = document.createElement("tr");
       tr.className = "hover:bg-slate-50 transition";
 
       const isPlus = item.type === "plus";
       const badgeClass = isPlus ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50";
+      const accentClass = isPlus ? "accent-emerald-600" : "accent-rose-600";
       const ptsLabel = item.pts > 0 ? `+${item.pts}` : `${item.pts}`;
 
-      let dayInputsHtml = "";
+      let dayCheckboxesHtml = "";
       for (let d = 0; d < 7; d++) {
-        const val = arr[d] || "";
-        const highlight = arr[d] > 0 ? (isPlus ? "bg-emerald-100/70 font-bold text-emerald-900" : "bg-rose-100/70 font-bold text-rose-900") : "bg-white";
-        dayInputsHtml += `
-          <td class="p-1 text-center">
-            <input type="number" min="0" max="20" value="${val}" placeholder="0"
-              onchange="onCountChange('${item.id}', ${d}, this)"
-              class="w-11 text-center text-xs border border-slate-200 rounded py-1 focus:border-[#2c4a52] focus:outline-none ${highlight}" />
+        const isChecked = (parseInt(arr[d]) || 0) >= 1;
+        const cellBg = isChecked ? (isPlus ? "bg-emerald-50/80" : "bg-rose-50/80") : "";
+        dayCheckboxesHtml += `
+          <td class="p-1.5 text-center ${cellBg}">
+            <label class="inline-flex items-center justify-center w-full h-full cursor-pointer">
+              <input type="checkbox" ${isChecked ? "checked" : ""}
+                onchange="onDayCheckboxChange('${item.id}', ${d}, this.checked)"
+                class="day-checkbox ${accentClass} rounded cursor-pointer" />
+            </label>
           </td>
         `;
       }
@@ -743,33 +833,23 @@
         <td class="py-2 px-2 text-center">
           <span class="inline-block px-2 py-0.5 rounded font-bold text-xs ${badgeClass}">${ptsLabel}</span>
         </td>
-        ${dayInputsHtml}
+        ${dayCheckboxesHtml}
         <td class="py-2 px-1 text-center">
           <label class="inline-flex items-center justify-center cursor-pointer" title="Chọn tất cả 7 ngày trong tuần cho hàng này">
-            <input type="checkbox" ${allSelected ? "checked" : ""}
+            <input id="selAll-${item.id}" type="checkbox" ${allSelected ? "checked" : ""}
               onchange="toggleRowSelectAll('${item.id}', this.checked)"
               class="w-4 h-4 accent-[#2c4a52] rounded cursor-pointer" />
           </label>
         </td>
-        <td id="rowCnt-${item.id}" class="py-2 px-2 text-center text-xs font-medium text-slate-600">0</td>
+        <td class="py-1.5 px-2 text-center">
+          <input id="rowCnt-${item.id}" type="number" min="0" max="99" value="${effectiveCnt}"
+            onchange="onManualCountInput('${item.id}', this)"
+            oninput="onManualCountInput('${item.id}', this)"
+            class="w-14 text-center text-xs font-bold border border-slate-300 rounded py-1 bg-white focus:border-[#2c4a52] focus:outline-none text-slate-800" />
+        </td>
         <td id="rowPts-${item.id}" class="py-2 px-3 text-center text-xs font-bold ${isPlus ? 'text-emerald-700' : 'text-rose-700'}">0</td>
       `;
       return tr;
-    }
-
-    function onCountChange(itemId, dayIndex, inputEl) {
-      const val = Math.max(0, parseInt(inputEl.value) || 0);
-      inputEl.value = val === 0 ? "" : val;
-      const profile = appData[currentKid];
-      if (!profile.counts[itemId]) profile.counts[itemId] = [0, 0, 0, 0, 0, 0, 0];
-      profile.counts[itemId][dayIndex] = val;
-
-      const isPlus = itemId.startsWith("p");
-      inputEl.className = `w-11 text-center text-xs border border-slate-200 rounded py-1 focus:border-[#2c4a52] focus:outline-none ${
-        val > 0 ? (isPlus ? "bg-emerald-100/70 font-bold text-emerald-900" : "bg-rose-100/70 font-bold text-rose-900") : "bg-white"
-      }`;
-      recalculate();
-      saveData();
     }
 
     function recalculate() {
@@ -779,15 +859,16 @@
 
       CRITERIA.forEach(item => {
         const arr = profile.counts[item.id] || [0,0,0,0,0,0,0];
-        const rowCnt = arr.reduce((a, b) => a + b, 0);
+        const rowCnt = getEffectiveRowCount(profile, item.id);
         const rowPts = rowCnt * item.pts;
 
-        document.getElementById(`rowCnt-${item.id}`).innerText = rowCnt;
-        document.getElementById(`rowPts-${item.id}`).innerText = rowPts > 0 ? `+${rowPts}` : `${rowPts}`;
+        const ptsEl = document.getElementById(`rowPts-${item.id}`);
+        if (ptsEl) ptsEl.innerText = rowPts > 0 ? `+${rowPts}` : `${rowPts}`;
 
         for (let d = 0; d < 7; d++) {
-          if (item.type === "plus") dayPlus[d] += arr[d] * item.pts;
-          else dayMinus[d] += arr[d] * item.pts;
+          const dayDone = (parseInt(arr[d]) || 0) >= 1 ? 1 : 0;
+          if (item.type === "plus") dayPlus[d] += dayDone * item.pts;
+          else dayMinus[d] += dayDone * item.pts;
         }
         if (item.type === "plus") { cntPlus += rowCnt; ptsPlus += rowPts; }
         else { cntMinus += rowCnt; ptsMinus += rowPts; }
@@ -816,7 +897,7 @@
       const available = (parseInt(profile.prevPoints) || 0) + netWeek - (parseInt(profile.redeemedPoints) || 0);
       document.getElementById("nextWeekBalance").innerText = available;
       document.getElementById("statAvailable").innerText = available;
-      updateKidSelectorUI();
+      updateKidCardsUI();
     }
 
     function updateMeta() {
@@ -842,6 +923,7 @@
       profile.redeemedPoints = 0;
       profile.rewardNote = "";
       profile.counts = {};
+      profile.manualCounts = {};
       renderAll();
     }
 
@@ -863,6 +945,10 @@
           const imported = JSON.parse(e.target.result);
           if (imported.be1 && imported.be2) {
             appData = imported;
+            ["be1", "be2"].forEach(k => {
+              if (!appData[k].manualCounts) appData[k].manualCounts = {};
+              if (!appData[k].counts) appData[k].counts = {};
+            });
             renderAll();
             alert("Khôi phục dữ liệu thành công!");
           }
