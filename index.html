@@ -13,21 +13,32 @@
   <title>Bảng Chấm Điểm Rèn Luyện & Đổi Thưởng Cho Bé</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f3f6f8; -webkit-tap-highlight-color: transparent; }
-    .tab-active { border-bottom: 3px solid #2c4a52; color: #2c4a52; font-weight: 700; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f3f6f8;
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .kid-btn-active { background-color: #2c4a52; color: #ffffff; border-color: #2c4a52; box-shadow: 0 2px 6px rgba(44, 74, 82, 0.25); }
+    .kid-btn-inactive { background-color: #f8fafc; color: #334155; border-color: #cbd5e1; }
     input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
   </style>
 </head>
-<body class="text-slate-800 pb-20">
+<body id="appBody" class="text-slate-800 pb-20">
 
   <!-- Header -->
-  <header class="bg-[#2c4a52] text-white shadow-md sticky top-0 z-20">
+  <header id="appHeader" class="bg-[#2c4a52] text-white shadow-md sticky top-0 z-20 transition-all">
     <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
       <div>
         <h1 class="text-lg sm:text-xl font-bold tracking-wide">BẢNG CHẤM ĐIỂM RÈN LUYỆN & ĐỔI THƯỞNG</h1>
-        <p class="text-xs text-teal-100 mt-0.5">Hỗ trợ iOS & Android • Tự động lưu trên thiết bị</p>
+        <p class="text-xs text-teal-100 mt-0.5">Chọn từng bé để chấm điểm riêng biệt • Tự động lưu trên thiết bị</p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <button onclick="toggleThemePanel()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
+          Ảnh giao diện
+        </button>
         <button onclick="exportBackup()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
           Sao lưu (.json)
         </button>
@@ -41,54 +52,140 @@
       </div>
     </div>
 
-    <!-- Kid Selector Tabs -->
-    <div class="bg-white text-slate-600 border-b border-slate-200">
-      <div class="max-w-7xl mx-auto px-4 flex space-x-6">
-        <button id="tab-be1" onclick="switchKid('be1')" class="py-2.5 text-sm tab-active transition">
-          Bé 1 (Hồ sơ 1)
-        </button>
-        <button id="tab-be2" onclick="switchKid('be2')" class="py-2.5 text-sm hover:text-slate-900 transition">
-          Bé 2 (Hồ sơ 2)
-        </button>
+    <!-- Custom Theme & Photo Panel (Collapsible) -->
+    <div id="themePanel" class="hidden bg-slate-900/95 text-white border-t border-slate-700">
+      <div class="max-w-7xl mx-auto px-4 py-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <!-- Upload Avatar for Current Kid -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-3">
+          <div>
+            <div class="font-bold text-amber-300">1. Ảnh đại diện của <span id="themeKidLabel">Bé 1</span></div>
+            <div class="text-slate-300 mt-0.5">Chọn ảnh chân dung bé từ thư viện ảnh</div>
+            <div class="mt-2 flex gap-2">
+              <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
+                Chọn ảnh bé
+                <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatar(event)" />
+              </label>
+              <button type="button" onclick="removeKidAvatar()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
+                Xóa ảnh
+              </button>
+            </div>
+          </div>
+          <img id="avatarPreview" src="" alt="" class="hidden w-14 h-14 rounded-full object-cover border-2 border-amber-300 shrink-0" />
+        </div>
+
+        <!-- Upload Cover Banner for Current Kid -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col justify-between">
+          <div>
+            <div class="font-bold text-amber-300">2. Ảnh bìa đầu trang của bé</div>
+            <div class="text-slate-300 mt-0.5">Hiển thị banner trang trí riêng phía trên bảng điểm</div>
+          </div>
+          <div class="mt-2 flex gap-2">
+            <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
+              Chọn ảnh bìa
+              <input type="file" accept="image/*" class="hidden" onchange="uploadKidBanner(event)" />
+            </label>
+            <button type="button" onclick="removeKidBanner()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
+              Xóa ảnh bìa
+            </button>
+          </div>
+        </div>
+
+        <!-- Upload App Background Wallpaper -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col justify-between">
+          <div>
+            <div class="font-bold text-amber-300">3. Hình nền toàn ứng dụng</div>
+            <div class="text-slate-300 mt-0.5">Tự chọn hình nền gia đình hoặc hình hoạt hình bé thích</div>
+          </div>
+          <div class="mt-2 flex gap-2">
+            <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
+              Chọn hình nền
+              <input type="file" accept="image/*" class="hidden" onchange="uploadWallpaper(event)" />
+            </label>
+            <button type="button" onclick="removeWallpaper()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg">
+              Mặc định
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kid Selector Bar (Select One Kid at a Time) -->
+    <div class="bg-white/95 backdrop-blur border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          Chọn bé đang chấm điểm:
+        </div>
+        <div class="grid grid-cols-2 sm:flex gap-2.5 w-full sm:w-auto">
+          <button id="btn-be1" type="button" onclick="switchKid('be1')"
+            class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-active">
+            <img id="btnAvatar-be1" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover border border-white/60" />
+            <span class="kid-label">Bé 1</span>
+            <span id="badge-be1" class="text-[11px] px-2 py-0.5 rounded-full bg-white/20">0 đ</span>
+          </button>
+          <button id="btn-be2" type="button" onclick="switchKid('be2')"
+            class="px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-inactive">
+            <img id="btnAvatar-be2" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover border border-slate-300" />
+            <span class="kid-label">Bé 2</span>
+            <span id="badge-be2" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">0 đ</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 mt-5 space-y-5">
 
-    <!-- Install Guide Banner for iOS & Android -->
-    <div id="installBanner" class="bg-teal-50 border border-teal-200 rounded-xl p-3.5 flex items-start justify-between gap-3 text-xs text-teal-950">
-      <div>
-        <span class="font-bold">Mẹo cài lên iPhone / Android:</span>
-        Mở trang bằng Safari (iOS) chọn <b>Chia sẻ → Thêm vào Màn hình chính</b>, hoặc Chrome (Android) chọn <b>⋮ → Cài đặt ứng dụng / Thêm vào Màn hình chính</b> để dùng toàn màn hình như app.
+    <!-- Optional Cover Banner Image for Active Kid -->
+    <div id="kidBannerContainer" class="hidden relative rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-slate-800">
+      <img id="kidBannerImg" src="" alt="Ảnh bìa của bé" class="w-full h-36 sm:h-48 object-cover" />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
+        <div class="flex items-center gap-3 text-white">
+          <img id="bannerAvatarImg" src="" alt="" class="hidden w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow" />
+          <div>
+            <div id="bannerKidName" class="text-lg font-extrabold tracking-wide">Bé 1</div>
+            <div id="bannerWeekLabel" class="text-xs text-slate-200">Tuần hiện tại</div>
+          </div>
+        </div>
       </div>
-      <button onclick="document.getElementById('installBanner').style.display='none'" class="text-teal-700 font-bold px-1.5">✕</button>
+    </div>
+
+    <!-- Active Kid Banner -->
+    <div class="bg-white/95 backdrop-blur border-l-4 border-[#2c4a52] rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-3 text-sm">
+        <img id="activeKidAvatar" src="" alt="" class="hidden w-10 h-10 rounded-full object-cover border-2 border-[#2c4a52]" />
+        <div>
+          Đang xem & chấm điểm cho: <strong id="activeKidBannerName" class="text-[#2c4a52] text-base">Bé 1</strong>
+        </div>
+      </div>
+      <button type="button" onclick="toggleThemePanel()" class="text-xs font-semibold text-[#2c4a52] hover:underline">
+        + Đổi ảnh đại diện / ảnh bìa / hình nền
+      </button>
     </div>
 
     <!-- Metadata & Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+      <div class="bg-white/95 backdrop-blur p-4 rounded-xl shadow-sm border border-slate-200">
         <label class="block text-[11px] font-semibold text-slate-500 uppercase">Tên của bé</label>
         <input id="kidName" type="text" oninput="updateMeta()" placeholder="Nhập tên bé..."
-          class="mt-1 w-full text-base font-bold text-slate-800 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1" />
+          class="mt-1 w-full text-base font-bold text-slate-800 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1 bg-transparent" />
         <label class="block text-[11px] font-semibold text-slate-500 uppercase mt-2.5">Tuần theo dõi</label>
         <input id="weekLabel" type="text" oninput="updateMeta()" placeholder="VD: Tuần 1 (23/11 - 29/11)"
-          class="mt-1 w-full text-xs text-slate-700 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1" />
+          class="mt-1 w-full text-xs text-slate-700 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1 bg-transparent" />
       </div>
 
-      <div class="bg-emerald-50 p-4 rounded-xl shadow-sm border border-emerald-200 flex flex-col justify-between">
+      <div class="bg-emerald-50/95 backdrop-blur p-4 rounded-xl shadow-sm border border-emerald-200 flex flex-col justify-between">
         <span class="text-[11px] font-semibold text-emerald-800 uppercase">Tổng điểm cộng tuần này</span>
         <div id="statPlus" class="text-3xl font-extrabold text-emerald-700 my-1">+0</div>
         <span class="text-xs text-emerald-600">Ghi nhận thói quen tốt & tự giác</span>
       </div>
 
-      <div class="bg-rose-50 p-4 rounded-xl shadow-sm border border-rose-200 flex flex-col justify-between">
+      <div class="bg-rose-50/95 backdrop-blur p-4 rounded-xl shadow-sm border border-rose-200 flex flex-col justify-between">
         <span class="text-[11px] font-semibold text-rose-800 uppercase">Tổng điểm trừ tuần này</span>
         <div id="statMinus" class="text-3xl font-extrabold text-rose-700 my-1">0</div>
         <span class="text-xs text-rose-600">Các lỗi vi phạm cần khắc phục</span>
       </div>
 
-      <div class="bg-slate-800 text-white p-4 rounded-xl shadow-sm flex flex-col justify-between">
+      <div class="bg-slate-800/95 backdrop-blur text-white p-4 rounded-xl shadow-sm flex flex-col justify-between">
         <span class="text-[11px] font-semibold text-teal-200 uppercase">Quỹ điểm khả dụng hiện tại</span>
         <div id="statAvailable" class="text-3xl font-extrabold text-amber-300 my-1">0</div>
         <span class="text-xs text-slate-300">Bao gồm điểm tuần trước & trừ quà đã đổi</span>
@@ -96,7 +193,7 @@
     </div>
 
     <!-- Main Tracking Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse min-w-[860px]">
           <thead>
@@ -121,9 +218,9 @@
     </div>
 
     <!-- Collapsible Reward Redemption & Fund Summary -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <button type="button" onclick="toggleRewardsPanel()"
-        class="w-full px-5 py-3.5 bg-slate-100 hover:bg-slate-200/70 flex items-center justify-between text-left transition">
+        class="w-full px-5 py-3.5 bg-slate-100/90 hover:bg-slate-200/70 flex items-center justify-between text-left transition">
         <div>
           <span class="text-sm font-bold text-[#2c4a52] uppercase">Mục tiêu đổi thưởng & Tổng kết quỹ điểm tuần</span>
           <span class="text-xs text-slate-500 ml-2">(Bấm để mở rộng / thu gọn)</span>
@@ -132,7 +229,6 @@
       </button>
 
       <div id="rewardsPanel" class="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Reward Menu -->
         <div class="lg:col-span-2 space-y-3 text-sm">
           <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách phần thưởng gợi ý</h3>
           <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2.5">
@@ -158,7 +254,6 @@
           </div>
         </div>
 
-        <!-- Fund Summary Box -->
         <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
           <div>
             <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tính quỹ điểm còn lại</h3>
@@ -241,7 +336,7 @@
       { id: "m15", type: "minus", title: "Thái độ hậm hực, dùng từ ngữ chưa chuẩn mực", desc: "Không hợp tác khi được nhắc nhở, nói trống không hoặc cãi lại", pts: -3 }
     ];
 
-    const STORAGE_KEY = "kid_habit_tracker_v2";
+    const STORAGE_KEY = "kid_habit_tracker_v4";
     let currentKid = "be1";
     let rewardsExpanded = true;
 
@@ -252,14 +347,195 @@
         prevPoints: 0,
         redeemedPoints: 0,
         rewardNote: "",
+        avatar: "",
+        banner: "",
         counts: {}
       };
     }
 
     let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+      wallpaper: "",
       be1: createEmptyProfile("Bé 1"),
       be2: createEmptyProfile("Bé 2")
     };
+
+    // Compress uploaded image automatically so localStorage stays fast and never hits quota
+    function compressImageFile(file, maxDimension, quality, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDimension || h > maxDimension) {
+            if (w > h) {
+              h = Math.round((h * maxDimension) / w);
+              w = maxDimension;
+            } else {
+              w = Math.round((w * maxDimension) / h);
+              h = maxDimension;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function toggleThemePanel() {
+      document.getElementById("themePanel").classList.toggle("hidden");
+    }
+
+    function uploadKidAvatar(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      compressImageFile(file, 300, 0.82, (dataUrl) => {
+        appData[currentKid].avatar = dataUrl;
+        saveData();
+        applyCustomPhotos();
+      });
+    }
+
+    function removeKidAvatar() {
+      appData[currentKid].avatar = "";
+      saveData();
+      applyCustomPhotos();
+    }
+
+    function uploadKidBanner(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      compressImageFile(file, 1200, 0.8, (dataUrl) => {
+        appData[currentKid].banner = dataUrl;
+        saveData();
+        applyCustomPhotos();
+      });
+    }
+
+    function removeKidBanner() {
+      appData[currentKid].banner = "";
+      saveData();
+      applyCustomPhotos();
+    }
+
+    function uploadWallpaper(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      compressImageFile(file, 1400, 0.78, (dataUrl) => {
+        appData.wallpaper = dataUrl;
+        saveData();
+        applyCustomPhotos();
+      });
+    }
+
+    function removeWallpaper() {
+      appData.wallpaper = "";
+      saveData();
+      applyCustomPhotos();
+    }
+
+    function applyCustomPhotos() {
+      const profile = appData[currentKid];
+      const bodyEl = document.getElementById("appBody");
+
+      // 1. Global App Wallpaper
+      if (appData.wallpaper) {
+        bodyEl.style.backgroundImage = `linear-gradient(rgba(243, 246, 248, 0.78), rgba(243, 246, 248, 0.78)), url('${appData.wallpaper}')`;
+      } else {
+        bodyEl.style.backgroundImage = "none";
+      }
+
+      // 2. Avatars on selector buttons
+      ["be1", "be2"].forEach(k => {
+        const imgEl = document.getElementById(`btnAvatar-${k}`);
+        if (appData[k].avatar) {
+          imgEl.src = appData[k].avatar;
+          imgEl.classList.remove("hidden");
+        } else {
+          imgEl.classList.add("hidden");
+        }
+      });
+
+      // 3. Active kid avatar & theme panel preview
+      const activeAvatarEl = document.getElementById("activeKidAvatar");
+      const previewAvatarEl = document.getElementById("avatarPreview");
+      const bannerAvatarEl = document.getElementById("bannerAvatarImg");
+      if (profile.avatar) {
+        activeAvatarEl.src = profile.avatar;
+        activeAvatarEl.classList.remove("hidden");
+        previewAvatarEl.src = profile.avatar;
+        previewAvatarEl.classList.remove("hidden");
+        bannerAvatarEl.src = profile.avatar;
+        bannerAvatarEl.classList.remove("hidden");
+      } else {
+        activeAvatarEl.classList.add("hidden");
+        previewAvatarEl.classList.add("hidden");
+        bannerAvatarEl.classList.add("hidden");
+      }
+
+      // 4. Active kid cover banner
+      const bannerContainer = document.getElementById("kidBannerContainer");
+      if (profile.banner) {
+        document.getElementById("kidBannerImg").src = profile.banner;
+        document.getElementById("bannerKidName").innerText = profile.name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
+        document.getElementById("bannerWeekLabel").innerText = profile.weekLabel || "Tuần hiện tại";
+        bannerContainer.classList.remove("hidden");
+      } else {
+        bannerContainer.classList.add("hidden");
+      }
+
+      document.getElementById("themeKidLabel").innerText = profile.name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
+    }
+
+    function computeKidBalance(profile) {
+      let ptsPlus = 0, ptsMinus = 0;
+      CRITERIA.forEach(item => {
+        const arr = profile.counts[item.id] || [0,0,0,0,0,0,0];
+        const rowCnt = arr.reduce((a, b) => a + b, 0);
+        const rowPts = rowCnt * item.pts;
+        if (item.type === "plus") ptsPlus += rowPts;
+        else ptsMinus += rowPts;
+      });
+      const netWeek = ptsPlus + ptsMinus;
+      const available = (parseInt(profile.prevPoints) || 0) + netWeek - (parseInt(profile.redeemedPoints) || 0);
+      return { ptsPlus, ptsMinus, netWeek, available };
+    }
+
+    function updateKidSelectorUI() {
+      const b1 = computeKidBalance(appData.be1);
+      const b2 = computeKidBalance(appData.be2);
+
+      const btn1 = document.getElementById("btn-be1");
+      const btn2 = document.getElementById("btn-be2");
+      const badge1 = document.getElementById("badge-be1");
+      const badge2 = document.getElementById("badge-be2");
+
+      btn1.querySelector(".kid-label").innerText = appData.be1.name || "Bé 1";
+      btn2.querySelector(".kid-label").innerText = appData.be2.name || "Bé 2";
+      badge1.innerText = `${b1.available} đ`;
+      badge2.innerText = `${b2.available} đ`;
+
+      if (currentKid === "be1") {
+        btn1.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-active";
+        btn2.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-inactive";
+        badge1.className = "text-[11px] px-2 py-0.5 rounded-full bg-white/20";
+        badge2.className = "text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700";
+        document.getElementById("activeKidBannerName").innerText = appData.be1.name || "Bé 1";
+      } else {
+        btn2.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-active";
+        btn1.className = "px-4 py-2 rounded-xl border text-sm font-bold transition flex items-center justify-center gap-2 kid-btn-inactive";
+        badge2.className = "text-[11px] px-2 py-0.5 rounded-full bg-white/20";
+        badge1.className = "text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700";
+        document.getElementById("activeKidBannerName").innerText = appData.be2.name || "Bé 2";
+      }
+      applyCustomPhotos();
+    }
 
     function toggleRewardsPanel() {
       rewardsExpanded = !rewardsExpanded;
@@ -268,15 +544,16 @@
     }
 
     function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-      document.getElementById("tab-be1").innerText = appData.be1.name || "Bé 1";
-      document.getElementById("tab-be2").innerText = appData.be2.name || "Bé 2";
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      } catch (e) {
+        alert("Dung lượng ảnh quá lớn, vui lòng chọn ảnh nhẹ hơn.");
+      }
+      updateKidSelectorUI();
     }
 
     function switchKid(kidKey) {
       currentKid = kidKey;
-      document.getElementById("tab-be1").className = kidKey === "be1" ? "py-2.5 text-sm tab-active transition" : "py-2.5 text-sm hover:text-slate-900 transition";
-      document.getElementById("tab-be2").className = kidKey === "be2" ? "py-2.5 text-sm tab-active transition" : "py-2.5 text-sm hover:text-slate-900 transition";
       renderAll();
     }
 
@@ -430,6 +707,7 @@
       const available = (parseInt(profile.prevPoints) || 0) + netWeek - (parseInt(profile.redeemedPoints) || 0);
       document.getElementById("nextWeekBalance").innerText = available;
       document.getElementById("statAvailable").innerText = available;
+      updateKidSelectorUI();
     }
 
     function updateMeta() {
