@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diem-be-yeu-v14-network-first';
+const CACHE_NAME = 'diem-be-yeu-v15-network-first';
 const ASSETS = [
   './',
   './index.html',

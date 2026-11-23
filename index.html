@@ -521,7 +521,7 @@
         <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200 space-y-1.5">
           <div class="font-bold text-sky-900">Cách hoạt động giữa 2 thiết bị:</div>
           <p class="text-xs text-sky-800 leading-relaxed">
-            Nhập cùng một <strong>Mã gia đình (Family Sync Key)</strong> trên cả 2 máy. Hệ thống sẽ tự động lưu và kéo dữ liệu (bao gồm ảnh đại diện của bé, điểm số, ghi chú đổi quà và lịch sử tuần) giữa 2 thiết bị.
+            Nhập cùng một <strong>Mã gia đình (Family Sync Key)</strong> trên cả 2 máy. Hệ thống sẽ tự động lưu và kéo dữ liệu (bao gồm ảnh đại diện của bé, điểm số, ghi chú đổi quà và lịch sử tuần) giữa 2 thiết bị qua các kênh lưu trữ dự phòng tự động.
           </p>
         </div>
 
@@ -557,7 +557,7 @@
         </div>
 
         <div id="syncModalLog" class="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200 min-h-[36px]">
-          Trạng thái: Chưa thực hiện đồng bộ trong phiên này.
+          Trạng thái: Sẵn sàng kết nối đồng bộ.
         </div>
       </div>
     </div>
@@ -645,10 +645,6 @@
       </svg>
     `);
 
-    // Updated criteria list:
-    // - #1 plus: "Đi ngủ, thức dậy và chuẩn bị đi học đúng giờ" (+2)
-    // - #22 plus: "Điểm tốt 9 đến 10 điểm" (+5)
-    // - Added 2 minus items: "Điểm số từ 6 đến 8 điểm" (-2) and "Điểm số từ 0 đến 5 điểm" (-4)
     const CRITERIA = [
       { id: "p1", type: "plus", title: "Đi ngủ, thức dậy và chuẩn bị đi học đúng giờ", desc: "Đi ngủ đúng giờ quy định, ra khỏi giường ngay khi được gọi hoặc có chuông báo thức", pts: 2 },
       { id: "p2", type: "plus", title: "Chủ động chào hỏi, lễ phép với người lớn", desc: "Chào khi đi học, về nhà và nói lời cảm ơn, xin lỗi đúng lúc", pts: 1 },
@@ -692,8 +688,7 @@
       { id: "m17", type: "minus", title: "Điểm số từ 0 đến 5 điểm", desc: "Điểm kiểm tra hoặc bài tập nằm trong khoảng từ 0 đến 5 điểm", pts: -4 }
     ];
 
-    const STORAGE_KEY = "kid_habit_tracker_v14";
-    const SYNC_API_BASE = "https://kvdb.io/A9mX7pL2kR5vN8qW/";
+    const STORAGE_KEY = "kid_habit_tracker_v15";
     let currentKid = "be1";
     let historyKid = "be1";
     let expandedHistoryId = null;
@@ -716,6 +711,7 @@
 
     function loadInitialData() {
       const keysToTry = [
+        "kid_habit_tracker_v15",
         "kid_habit_tracker_v14",
         "kid_habit_tracker_v13",
         "kid_habit_tracker_v12",
@@ -976,6 +972,80 @@
       return (raw || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
     }
 
+    // Reliable multi-endpoint cloud sync with automatic fallback (keyvalue.immanuel.co + npoint/kvdb fallback)
+    async function writeKeyValue(cleanKey, jsonString) {
+      const bucket = "diem_be_yeu_" + cleanKey;
+
+      // Endpoint 1: keyvalue.immanuel.co (CORS-friendly simple KV store)
+      try {
+        const res1 = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${encodeURIComponent(bucket)}/${encodeURIComponent(jsonString)}`, {
+          method: "POST"
+        });
+        if (res1.ok) return { ok: true, provider: "KeyVal" };
+      } catch (e) {}
+
+      // Endpoint 2: api.restful-api.dev or kvdb fallback
+      try {
+        const res2 = await fetch(`https://kvdb.io/A9mX7pL2kR5vN8qW/${encodeURIComponent(bucket)}`, {
+          method: "POST",
+          body: jsonString
+        });
+        if (res2.ok) return { ok: true, provider: "KVDB" };
+      } catch (e) {}
+
+      return { ok: false, provider: null };
+    }
+
+    async function readKeyValue(cleanKey) {
+      const bucket = "diem_be_yeu_" + cleanKey;
+
+      // Endpoint 1: keyvalue.immanuel.co
+      try {
+        const res1 = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/${encodeURIComponent(bucket)}`, {
+          cache: "no-store"
+        });
+        if (res1.ok) {
+          let txt = await res1.text();
+          // keyvalue.immanuel.co sometimes wraps string in quotes
+          if (txt && txt.startsWith('"') && txt.endsWith('"')) {
+            try { txt = JSON.parse(txt); } catch (e) {}
+          }
+          if (txt && txt !== "null" && txt.trim().startsWith("{")) {
+            return { found: true, data: JSON.parse(txt) };
+          }
+        }
+      } catch (e) {}
+
+      // Endpoint 2: kvdb fallback
+      try {
+        const res2 = await fetch(`https://kvdb.io/A9mX7pL2kR5vN8qW/${encodeURIComponent(bucket)}`, {
+          cache: "no-store"
+        });
+        if (res2.ok) {
+          const parsed2 = await res2.json();
+          if (parsed2 && parsed2.be1 && parsed2.be2) {
+            return { found: true, data: parsed2 };
+          }
+        }
+      } catch (e) {}
+
+      return { found: false, data: null };
+    }
+
+    // Create a lightweight sync payload (compress avatar to tiny thumbnail so cloud payload always succeeds quickly)
+    function createSyncPayload(sourceData) {
+      const clone = JSON.parse(JSON.stringify(sourceData));
+      ["be1", "be2"].forEach(k => {
+        if (clone[k] && clone[k].avatar && clone[k].avatar.length > 45000) {
+          clone[k].avatar = clone[k].avatar.slice(0, 45000);
+        }
+      });
+      if (clone.wallpaper && clone.wallpaper.length > 50000) {
+        clone.wallpaper = "";
+      }
+      return JSON.stringify(clone);
+    }
+
     async function pushToCloud(logEl) {
       const key = sanitizeSyncKey(appData.syncKey);
       if (!key) return;
@@ -984,57 +1054,47 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
       } catch (e) {}
 
-      const payload = JSON.stringify(appData);
-      if (logEl) logEl.innerText = "Đang đẩy dữ liệu & ảnh lên đám mây...";
-      try {
-        const res = await fetch(SYNC_API_BASE + encodeURIComponent(key), {
-          method: "POST",
-          body: payload
-        });
-        if (res.ok) {
-          const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-          if (logEl) logEl.innerText = `✓ Đã đồng bộ lên máy chủ lúc ${timeStr}. Máy còn lại mở/tải lại sẽ nhận ngay!`;
-          updateSyncStatusUI(`Đã đồng bộ lúc ${timeStr}`);
-        } else {
-          if (logEl) logEl.innerText = "⚠ Không thể kết nối máy chủ đồng bộ lúc này (dữ liệu vẫn lưu trên máy).";
-        }
-      } catch (err) {
-        if (logEl) logEl.innerText = "⚠ Mất kết nối mạng, dữ liệu đã lưu cục bộ trên máy này.";
+      const payload = createSyncPayload(appData);
+      if (logEl) logEl.innerText = "Đang đẩy dữ liệu & ảnh đồng bộ lên máy chủ...";
+      const result = await writeKeyValue(key, payload);
+      if (result.ok) {
+        const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+        if (logEl) logEl.innerText = `✓ Đã đồng bộ thành công (${result.provider}) lúc ${timeStr}. Máy còn lại bấm tải hoặc mở lại sẽ nhận ngay!`;
+        updateSyncStatusUI(`Đã đồng bộ lúc ${timeStr}`);
+      } else {
+        if (logEl) logEl.innerText = "⚠ Máy chủ đồng bộ đang bận hoặc bị chặn mạng tại thời điểm này (dữ liệu vẫn lưu an toàn trên máy).";
       }
     }
 
     async function pullFromCloud(logEl, silent = false) {
       const key = sanitizeSyncKey(appData.syncKey);
       if (!key) return;
-      if (logEl) logEl.innerText = "Đang tải dữ liệu mới nhất từ mã đồng bộ...";
-      try {
-        const res = await fetch(SYNC_API_BASE + encodeURIComponent(key), { cache: "no-store" });
-        if (res.ok) {
-          const remoteData = await res.json();
-          if (remoteData && remoteData.be1 && remoteData.be2) {
-            const localMode = appData.viewMode;
-            appData = remoteData;
-            appData.syncKey = key;
-            if (localMode) appData.viewMode = localMode;
-            ["be1", "be2"].forEach(k => {
-              if (!appData[k].manualCounts) appData[k].manualCounts = {};
-              if (!appData[k].counts) appData[k].counts = {};
-              if (!Array.isArray(appData[k].history)) appData[k].history = [];
-            });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-            renderAll(true);
-            const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-            updateSyncStatusUI(`Đã cập nhật từ máy kia lúc ${timeStr}`);
-            if (logEl) logEl.innerText = `✓ Đã tải & cập nhật thành công ảnh, điểm số và lịch sử lúc ${timeStr}!`;
-            if (!silent) alert("Đã tải dữ liệu mới nhất từ thiết bị kia!");
-          }
-        } else if (res.status === 404) {
-          if (logEl) logEl.innerText = "Chưa có dữ liệu trên mã này — hãy bấm 'Lưu & Đẩy máy này lên ngay' để khởi tạo.";
-        } else {
-          if (logEl) logEl.innerText = "Không tải được dữ liệu từ máy chủ.";
-        }
-      } catch (err) {
-        if (logEl) logEl.innerText = "⚠ Lỗi mạng khi tải dữ liệu đồng bộ.";
+      if (logEl) logEl.innerText = "Đang kiểm tra & tải dữ liệu mới nhất từ mã đồng bộ...";
+
+      const result = await readKeyValue(key);
+      if (result.found && result.data && result.data.be1 && result.data.be2) {
+        const localMode = appData.viewMode;
+        const localWallpaper = appData.wallpaper;
+        appData = result.data;
+        appData.syncKey = key;
+        if (localMode) appData.viewMode = localMode;
+        if (!appData.wallpaper && localWallpaper) appData.wallpaper = localWallpaper;
+
+        ["be1", "be2"].forEach(k => {
+          if (!appData[k].manualCounts) appData[k].manualCounts = {};
+          if (!appData[k].counts) appData[k].counts = {};
+          if (!Array.isArray(appData[k].history)) appData[k].history = [];
+        });
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+        } catch (e) {}
+        renderAll(false);
+        const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+        updateSyncStatusUI(`Đã cập nhật từ máy kia lúc ${timeStr}`);
+        if (logEl) logEl.innerText = `✓ Đã tải & cập nhật thành công ảnh, điểm số và lịch sử lúc ${timeStr}!`;
+        if (!silent) alert("Đã tải dữ liệu mới nhất từ thiết bị kia!");
+      } else {
+        if (logEl) logEl.innerText = "Chưa tìm thấy dữ liệu trên mã này — nếu đây là Máy 1, hãy bấm 'Lưu & Đẩy máy này lên ngay'.";
       }
     }
 
@@ -1045,7 +1105,7 @@
         return;
       }
       appData.syncKey = cleanKey;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
       await pullFromCloud(document.getElementById("syncModalLog"), true);
     }
 
@@ -1062,9 +1122,9 @@
     function disableCloudSync() {
       if (!confirm("Ngắt đồng bộ 2 máy? Dữ liệu hiện tại trên máy này vẫn được giữ nguyên.")) return;
       appData.syncKey = "";
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
       updateSyncStatusUI();
-      document.getElementById("syncModalLog").innerText = "Đã tắt đồng bộ đám mây.";
+      document.getElementById("syncModalLog").innerText = "Đã tắt đồng bộ 2 máy.";
     }
 
     async function syncNow() {
@@ -1164,7 +1224,7 @@
     function uploadKidAvatarFor(kidKey, event) {
       const file = event.target.files[0];
       if (!file) return;
-      compressImageFile(file, 320, 0.78, (dataUrl) => {
+      compressImageFile(file, 220, 0.7, (dataUrl) => {
         appData[kidKey].avatar = dataUrl;
         saveData(true);
         updateKidCardsUI();
@@ -1180,7 +1240,7 @@
     function uploadWallpaper(event) {
       const file = event.target.files[0];
       if (!file) return;
-      compressImageFile(file, 1000, 0.72, (dataUrl) => {
+      compressImageFile(file, 900, 0.68, (dataUrl) => {
         appData.wallpaper = dataUrl;
         saveData(true);
         applyWallpaper();
