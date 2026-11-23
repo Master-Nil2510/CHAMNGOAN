@@ -1,7 +1,7 @@
 {
   "name": "Bảng Chấm Điểm Rèn Luyện Cho Bé",
   "short_name": "Điểm Bé Yêu",
-  "description": "Ứng dụng theo dõi cộng điểm, trừ điểm và đổi thưởng hằng ngày cho bé",
+  "description": "Ứng dụng theo dõi cộng điểm, trừ điểm, đổi thưởng và lưu lịch sử từng tuần cho bé",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

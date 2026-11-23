@@ -20,6 +20,7 @@
       background-position: center;
       background-attachment: fixed;
       -webkit-tap-highlight-color: transparent;
+      transition: all 0.2s ease;
     }
     .kid-card-active {
       border-color: #2c4a52;
@@ -32,11 +33,21 @@
       border-color: #cbd5e1;
       background-color: #ffffff;
       color: #1e293b;
-      opacity: 0.88;
+      opacity: 0.9;
     }
     .kid-card-inactive:hover {
       opacity: 1;
       border-color: #64748b;
+    }
+    .view-mode-btn-active {
+      background-color: #fbbf24;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .view-mode-btn-inactive {
+      background-color: rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      font-weight: 500;
     }
     input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
     .day-checkbox {
@@ -44,37 +55,62 @@
       height: 22px;
       cursor: pointer;
     }
+    .phone-mode-shell {
+      max-width: 440px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      border-left: 1px solid #cbd5e1;
+      border-right: 1px solid #cbd5e1;
+    }
   </style>
 </head>
 <body id="appBody" class="text-slate-800 pb-20">
 
   <!-- Header -->
   <header id="appHeader" class="bg-[#2c4a52] text-white shadow-md sticky top-0 z-20 transition-all">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div id="headerInner" class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
       <div>
         <h1 class="text-base sm:text-xl font-bold tracking-wide">BẢNG CHẤM ĐIỂM RÈN LUYỆN & ĐỔI THƯỞNG</h1>
-        <p class="text-[11px] text-teal-100">Tích chọn từng ngày hoặc nhập trực tiếp số lần trong tuần • Tự động lưu</p>
+        <p class="text-[11px] text-teal-100">Chuyển đổi Trang web / Điện thoại • Lưu lịch sử điểm từng tuần</p>
       </div>
-      <div class="flex flex-wrap gap-2">
+
+      <!-- View Mode Switcher & Toolbar -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="inline-flex rounded-lg p-0.5 bg-black/25 border border-white/15" role="group" aria-label="Chế độ giao diện">
+          <button id="btnModeWeb" type="button" onclick="setViewMode('web')"
+            class="view-mode-btn-active text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1">
+            <span>💻 Trang web</span>
+          </button>
+          <button id="btnModePhone" type="button" onclick="setViewMode('phone')"
+            class="view-mode-btn-inactive text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1">
+            <span>📱 Điện thoại</span>
+          </button>
+        </div>
+
+        <button onclick="openHistoryModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
+          <span>📜 Lịch sử tuần</span>
+          <span id="historyBadgeCount" class="bg-white/20 px-1.5 py-0.2 rounded-full text-[10px]">0</span>
+        </button>
+
         <button onclick="toggleThemePanel()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
           Tùy chỉnh ảnh
         </button>
         <button onclick="exportBackup()" class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
-          Sao lưu (.json)
+          Sao lưu
         </button>
         <label class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer transition">
           Khôi phục
           <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackup(event)" />
         </label>
-        <button onclick="resetCurrentWeek()" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
-          Tuần mới
+        <button onclick="archiveAndResetCurrentWeek()" class="bg-rose-700 hover:bg-rose-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
+          Chốt & Sang tuần mới
         </button>
       </div>
     </div>
 
     <!-- Custom Theme & Photo Panel (Collapsible) -->
     <div id="themePanel" class="hidden bg-slate-900/95 text-white border-t border-slate-700">
-      <div class="max-w-7xl mx-auto px-4 py-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+      <div id="themePanelInner" class="max-w-7xl mx-auto px-4 py-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
         <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col justify-between">
           <div>
             <div class="font-bold text-amber-300">1. Ảnh thẻ đại diện của Bé 1</div>
@@ -126,21 +162,33 @@
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 mt-5 space-y-5">
+  <main id="mainContainer" class="max-w-7xl mx-auto px-4 mt-5 space-y-5 transition-all">
+
+    <!-- Current View Mode Indicator Strip -->
+    <div class="flex items-center justify-between text-xs text-slate-600 bg-white/90 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs">
+      <div>
+        Chế độ hiển thị: <strong id="currentModeText" class="text-[#2c4a52]">Giao diện Trang web</strong>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="setViewMode('web')" class="underline hover:text-[#2c4a52]">Trang web</button>
+        <span>•</span>
+        <button type="button" onclick="setViewMode('phone')" class="underline hover:text-[#2c4a52]">Điện thoại</button>
+      </div>
+    </div>
 
     <!-- Visual 2-Card Kid Selector -->
     <section aria-label="Chọn bé theo hình">
-      <div class="flex items-center justify-between mb-2.5">
-        <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Chọn bé để chấm điểm (Chạm vào hình của bé):</span>
-        <span class="text-xs text-slate-500">Bấm biểu tượng 📷 trên từng hình để đổi ảnh</span>
+      <div class="flex flex-wrap items-center justify-between gap-1 mb-2.5">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Chọn bé để chấm điểm (Chạm vào hình):</span>
+        <span class="text-xs text-slate-500">Bấm 📷 trên hình để đổi ảnh</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-3.5 sm:gap-5">
+      <div id="kidCardsGrid" class="grid grid-cols-2 gap-3.5 sm:gap-5">
         <!-- Card 1: Bé 1 -->
         <div id="card-be1" onclick="switchKid('be1')"
-          class="kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none">
+          class="kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col items-center text-center gap-2.5 select-none">
           <div class="relative shrink-0">
-            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-amber-300 shadow-md bg-teal-900 flex items-center justify-center">
+            <div class="w-18 h-18 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-amber-300 shadow-md bg-teal-900 flex items-center justify-center">
               <img id="cardImg-be1" src="" alt="Hình Bé 1" class="w-full h-full object-cover" />
             </div>
             <label onclick="event.stopPropagation()" title="Đổi ảnh Bé 1"
@@ -149,13 +197,13 @@
               <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatarFor('be1', event)" />
             </label>
           </div>
-          <div class="text-center sm:text-left flex-1 min-w-0">
-            <div class="flex items-center justify-center sm:justify-start gap-2">
+          <div class="text-center flex-1 min-w-0">
+            <div class="flex items-center justify-center gap-2">
               <span id="statusDot-be1" class="inline-block w-2.5 h-2.5 rounded-full bg-amber-300 animate-pulse"></span>
               <span id="statusText-be1" class="text-[11px] font-bold uppercase tracking-wider text-amber-200">Đang chọn</span>
             </div>
-            <div id="cardName-be1" class="text-lg sm:text-xl font-extrabold truncate mt-0.5">Bé 1</div>
-            <div class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20" id="cardPointsWrap-be1">
+            <div id="cardName-be1" class="text-base sm:text-xl font-extrabold truncate mt-0.5">Bé 1</div>
+            <div class="mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20" id="cardPointsWrap-be1">
               <span>Quỹ điểm:</span>
               <span id="cardPoints-be1" class="text-amber-300">0 đ</span>
             </div>
@@ -164,9 +212,9 @@
 
         <!-- Card 2: Bé 2 -->
         <div id="card-be2" onclick="switchKid('be2')"
-          class="kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none">
+          class="kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col items-center text-center gap-2.5 select-none">
           <div class="relative shrink-0">
-            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-slate-300 shadow-md bg-indigo-900 flex items-center justify-center" id="cardFrame-be2">
+            <div class="w-18 h-18 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-slate-300 shadow-md bg-indigo-900 flex items-center justify-center" id="cardFrame-be2">
               <img id="cardImg-be2" src="" alt="Hình Bé 2" class="w-full h-full object-cover" />
             </div>
             <label onclick="event.stopPropagation()" title="Đổi ảnh Bé 2"
@@ -175,12 +223,12 @@
               <input type="file" accept="image/*" class="hidden" onchange="uploadKidAvatarFor('be2', event)" />
             </label>
           </div>
-          <div class="text-center sm:text-left flex-1 min-w-0">
-            <div class="flex items-center justify-center sm:justify-start gap-2">
+          <div class="text-center flex-1 min-w-0">
+            <div class="flex items-center justify-center gap-2">
               <span id="statusDot-be2" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300"></span>
               <span id="statusText-be2" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bấm để chọn</span>
             </div>
-            <div id="cardName-be2" class="text-lg sm:text-xl font-extrabold truncate mt-0.5">Bé 2</div>
+            <div id="cardName-be2" class="text-base sm:text-xl font-extrabold truncate mt-0.5">Bé 2</div>
             <div class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700" id="cardPointsWrap-be2">
               <span>Quỹ điểm:</span>
               <span id="cardPoints-be2" class="text-[#2c4a52]">0 đ</span>
@@ -193,43 +241,47 @@
     <!-- Quick Action Bar for Selected Kid -->
     <div class="bg-white/95 backdrop-blur border-l-4 border-[#2c4a52] rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-2.5">
       <div class="text-sm">
-        Bảng điểm chi tiết của: <strong id="activeKidBannerName" class="text-[#2c4a52] text-base">Bé 1</strong>
+        Bảng điểm của: <strong id="activeKidBannerName" class="text-[#2c4a52] text-base">Bé 1</strong>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button type="button" onclick="quickMarkDayAllGood()"
           class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
-          ✓ Hôm nay bé này ngoan (Tích đủ mục cộng)
+          ✓ Hôm nay bé này ngoan
         </button>
         <button type="button" onclick="quickMarkBothKidsTodayGood()"
           class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
           ✓✓ Cả 2 bé hôm nay đều ngoan
         </button>
+        <button type="button" onclick="openHistoryModal()"
+          class="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+          📜 Xem lịch sử tuần đã lưu
+        </button>
       </div>
     </div>
 
     <!-- Quick Day Selection Bar (T2 -> CN) -->
-    <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+    <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 px-4 py-3 flex flex-col gap-2">
       <div class="text-xs font-bold text-slate-600 uppercase tracking-wide">
-        Chọn nhanh cả ngày (Tích / Bỏ tích toàn bộ mục cộng điểm):
+        Chọn nhanh cả ngày (Tích / Bỏ tích mục cộng điểm):
       </div>
       <div class="flex flex-wrap gap-1.5">
-        <button type="button" onclick="toggleDayAllGood(0)" id="qday-0" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 2</button>
-        <button type="button" onclick="toggleDayAllGood(1)" id="qday-1" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 3</button>
-        <button type="button" onclick="toggleDayAllGood(2)" id="qday-2" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 4</button>
-        <button type="button" onclick="toggleDayAllGood(3)" id="qday-3" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 5</button>
-        <button type="button" onclick="toggleDayAllGood(4)" id="qday-4" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 6</button>
-        <button type="button" onclick="toggleDayAllGood(5)" id="qday-5" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 7</button>
-        <button type="button" onclick="toggleDayAllGood(6)" id="qday-6" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Chủ Nhật</button>
+        <button type="button" onclick="toggleDayAllGood(0)" id="qday-0" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 2</button>
+        <button type="button" onclick="toggleDayAllGood(1)" id="qday-1" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 3</button>
+        <button type="button" onclick="toggleDayAllGood(2)" id="qday-2" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 4</button>
+        <button type="button" onclick="toggleDayAllGood(3)" id="qday-3" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 5</button>
+        <button type="button" onclick="toggleDayAllGood(4)" id="qday-4" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 6</button>
+        <button type="button" onclick="toggleDayAllGood(5)" id="qday-5" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Thứ 7</button>
+        <button type="button" onclick="toggleDayAllGood(6)" id="qday-6" class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 transition">Chủ Nhật</button>
       </div>
     </div>
 
     <!-- Metadata & Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+    <div id="summaryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
       <div class="bg-white/95 backdrop-blur p-4 rounded-xl shadow-sm border border-slate-200">
         <label class="block text-[11px] font-semibold text-slate-500 uppercase">Đổi tên hiển thị của bé</label>
         <input id="kidName" type="text" oninput="updateMeta()" placeholder="Nhập tên bé..."
           class="mt-1 w-full text-base font-bold text-slate-800 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1 bg-transparent" />
-        <label class="block text-[11px] font-semibold text-slate-500 uppercase mt-2.5">Tuần theo dõi</label>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mt-2.5">Tuần theo dõi hiện tại</label>
         <input id="weekLabel" type="text" oninput="updateMeta()" placeholder="VD: Tuần 1 (23/11 - 29/11)"
           class="mt-1 w-full text-xs text-slate-700 border-b border-slate-300 focus:border-[#2c4a52] focus:outline-none pb-1 bg-transparent" />
       </div>
@@ -255,11 +307,11 @@
 
     <!-- Main Tracking Table -->
     <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
-        <span>💡 <strong>Cách chấm:</strong> Tích ô từng ngày (<strong>T2–CN</strong>) để tính đủ điểm ngày đó, hoặc nhập trực tiếp số lần vào cột <strong>Số lần</strong> (VD: nhập <code>2</code> nếu thực hiện 2 lần/tuần).</span>
+      <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600">
+        💡 Tích ô <strong>T2–CN</strong> để tính đủ điểm ngày đó, hoặc nhập số vào cột <strong>Số lần</strong> (VD: <code>2</code> → 4 điểm, <code>6</code> → 12 điểm).
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[920px]">
+        <table class="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr class="bg-[#2c4a52] text-white text-xs uppercase">
               <th class="py-3 px-2.5 w-10 text-center">STT</th>
@@ -293,7 +345,7 @@
         <span id="rewardToggleIcon" class="text-base font-bold text-[#2c4a52]">▼</span>
       </button>
 
-      <div id="rewardsPanel" class="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="rewardsPanelGrid" class="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-3 text-sm">
           <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách phần thưởng gợi ý</h3>
           <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2.5">
@@ -349,10 +401,54 @@
             <textarea id="rewardNote" rows="2" oninput="updateMeta()" placeholder="VD: Đổi 15 điểm lấy 2 truyện đọc thêm tối thứ 6..."
               class="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:border-[#2c4a52] focus:outline-none"></textarea>
           </div>
+
+          <button type="button" onclick="archiveAndResetCurrentWeek()"
+            class="mt-4 w-full bg-[#2c4a52] hover:bg-[#21383e] text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow transition">
+            💾 Lưu tuần này vào Lịch sử & Bắt đầu tuần mới
+          </button>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- Weekly History Modal -->
+  <div id="historyModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="bg-[#2c4a52] text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold">📜 LỊCH SỬ ĐIỂM CÁC TUẦN ĐÃ HOÀN THÀNH</h2>
+          <p class="text-xs text-teal-100 mt-0.5">Xem lại kết quả rèn luyện, điểm cộng/trừ và phần thưởng đã đổi của từng bé</p>
+        </div>
+        <button type="button" onclick="closeHistoryModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white font-bold">
+          ✕
+        </button>
+      </div>
+
+      <!-- Kid Filter Tabs in History Modal -->
+      <div class="bg-slate-100 px-5 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex gap-2">
+          <button id="histTab-be1" type="button" onclick="switchHistoryKid('be1')"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#2c4a52] text-white transition">
+            Lịch sử Bé 1
+          </button>
+          <button id="histTab-be2" type="button" onclick="switchHistoryKid('be2')"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 transition">
+            Lịch sử Bé 2
+          </button>
+        </div>
+        <button type="button" onclick="saveCurrentWeekSnapshotOnly()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+          + Lưu bản ghi tuần hiện tại ngay
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div id="historyContent" class="p-5 overflow-y-auto space-y-4 flex-1 text-sm">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -428,34 +524,76 @@
       { id: "m15", type: "minus", title: "Thái độ hậm hực, dùng từ ngữ chưa chuẩn mực", desc: "Không hợp tác khi được nhắc nhở, nói trống không hoặc cãi lại", pts: -3 }
     ];
 
-    const STORAGE_KEY = "kid_habit_tracker_v8";
+    const STORAGE_KEY = "kid_habit_tracker_v10";
     let currentKid = "be1";
+    let historyKid = "be1";
+    let expandedHistoryId = null;
     let rewardsExpanded = true;
 
     function createEmptyProfile(defaultName) {
       return {
         name: defaultName,
-        weekLabel: "Tuần hiện tại",
+        weekLabel: "Tuần 1",
         prevPoints: 0,
         redeemedPoints: 0,
         rewardNote: "",
         avatar: "",
-        counts: {},        // { itemId: [0|1, 0|1, 0|1, 0|1, 0|1, 0|1, 0|1] }
-        manualCounts: {}   // { itemId: number } when user types directly into "Số lần"
+        counts: {},
+        manualCounts: {},
+        history: [] // Array of archived week objects
       };
     }
 
     let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
       wallpaper: "",
+      viewMode: window.innerWidth < 640 ? "phone" : "web",
       be1: createEmptyProfile("Bé 1"),
       be2: createEmptyProfile("Bé 2")
     };
 
-    // Ensure manualCounts exists if older data structure is loaded
     ["be1", "be2"].forEach(k => {
       if (!appData[k].manualCounts) appData[k].manualCounts = {};
       if (!appData[k].counts) appData[k].counts = {};
+      if (!Array.isArray(appData[k].history)) appData[k].history = [];
     });
+
+    function setViewMode(mode) {
+      appData.viewMode = mode === "phone" ? "phone" : "web";
+      applyViewMode();
+      saveData();
+    }
+
+    function applyViewMode() {
+      const isPhone = appData.viewMode === "phone";
+      const headerInner = document.getElementById("headerInner");
+      const themePanelInner = document.getElementById("themePanelInner");
+      const mainContainer = document.getElementById("mainContainer");
+      const summaryGrid = document.getElementById("summaryGrid");
+      const rewardsPanelGrid = document.getElementById("rewardsPanelGrid");
+      const btnWeb = document.getElementById("btnModeWeb");
+      const btnPhone = document.getElementById("btnModePhone");
+      const modeText = document.getElementById("currentModeText");
+
+      if (isPhone) {
+        headerInner.classList.add("phone-mode-shell");
+        themePanelInner.classList.add("phone-mode-shell");
+        mainContainer.classList.add("phone-mode-shell", "bg-white/40", "py-3", "rounded-2xl");
+        summaryGrid.className = "grid grid-cols-1 gap-3";
+        rewardsPanelGrid.className = "p-4 grid grid-cols-1 gap-5";
+        btnPhone.className = "view-mode-btn-active text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1";
+        btnWeb.className = "view-mode-btn-inactive text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1";
+        modeText.innerText = "Giao diện Điện thoại (Gọn dọc, dễ thao tác 1 tay)";
+      } else {
+        headerInner.classList.remove("phone-mode-shell");
+        themePanelInner.classList.remove("phone-mode-shell");
+        mainContainer.classList.remove("phone-mode-shell", "bg-white/40", "py-3", "rounded-2xl");
+        summaryGrid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5";
+        rewardsPanelGrid.className = "p-5 grid grid-cols-1 lg:grid-cols-3 gap-6";
+        btnWeb.className = "view-mode-btn-active text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1";
+        btnPhone.className = "view-mode-btn-inactive text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1";
+        modeText.innerText = "Giao diện Trang web (Rộng rãi, đầy đủ cột nhìn)";
+      }
+    }
 
     function getEffectiveRowCount(profile, itemId) {
       if (profile.manualCounts && profile.manualCounts[itemId] !== undefined && profile.manualCounts[itemId] !== null) {
@@ -564,34 +702,37 @@
       document.getElementById("cardPoints-be1").innerText = `${b1.available} đ`;
       document.getElementById("cardPoints-be2").innerText = `${b2.available} đ`;
 
+      const totalHist = (appData.be1.history?.length || 0) + (appData.be2.history?.length || 0);
+      document.getElementById("historyBadgeCount").innerText = totalHist;
+
       const card1 = document.getElementById("card-be1");
       const card2 = document.getElementById("card-be2");
 
       if (currentKid === "be1") {
-        card1.className = "kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
-        card2.className = "kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
+        card1.className = "kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col items-center text-center gap-2.5 select-none";
+        card2.className = "kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col items-center text-center gap-2.5 select-none";
 
         document.getElementById("statusDot-be1").className = "inline-block w-2.5 h-2.5 rounded-full bg-amber-300 animate-pulse";
         document.getElementById("statusText-be1").className = "text-[11px] font-bold uppercase tracking-wider text-amber-200";
         document.getElementById("statusText-be1").innerText = "Đang chọn";
-        document.getElementById("cardPointsWrap-be1").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20";
+        document.getElementById("cardPointsWrap-be1").className = "mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20";
         document.getElementById("cardPoints-be1").className = "text-amber-300";
 
         document.getElementById("statusDot-be2").className = "inline-block w-2.5 h-2.5 rounded-full bg-slate-300";
         document.getElementById("statusText-be2").className = "text-[11px] font-bold uppercase tracking-wider text-slate-400";
         document.getElementById("statusText-be2").innerText = "Bấm để chọn";
-        document.getElementById("cardPointsWrap-be2").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700";
+        document.getElementById("cardPointsWrap-be2").className = "mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700";
         document.getElementById("cardPoints-be2").className = "text-[#2c4a52]";
 
         document.getElementById("activeKidBannerName").innerText = appData.be1.name || "Bé 1";
       } else {
-        card2.className = "kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
-        card1.className = "kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 select-none";
+        card2.className = "kid-card-active relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col items-center text-center gap-2.5 select-none";
+        card1.className = "kid-card-inactive relative rounded-2xl border-2 p-3 sm:p-4 cursor-pointer transition-all duration-200 flex flex-col items-center text-center gap-2.5 select-none";
 
         document.getElementById("statusDot-be2").className = "inline-block w-2.5 h-2.5 rounded-full bg-amber-300 animate-pulse";
         document.getElementById("statusText-be2").className = "text-[11px] font-bold uppercase tracking-wider text-amber-200";
         document.getElementById("statusText-be2").innerText = "Đang chọn";
-        document.getElementById("cardPointsWrap-be2").className = "mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20";
+        document.getElementById("cardPointsWrap-be2").className = "mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-black/20";
         document.getElementById("cardPoints-be2").className = "text-amber-300";
 
         document.getElementById("statusDot-be1").className = "inline-block w-2.5 h-2.5 rounded-full bg-slate-300";
@@ -617,10 +758,10 @@
         if (!btn) continue;
         const allChecked = plusItems.every(item => ((profile.counts[item.id] || [])[d] || 0) >= 1);
         if (allChecked) {
-          btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold border border-emerald-600 bg-emerald-600 text-white shadow-sm transition";
+          btn.className = "px-2.5 py-1.5 rounded-lg text-xs font-bold border border-emerald-600 bg-emerald-600 text-white shadow-sm transition";
           btn.innerText = `✓ ${dayLabels[d]}`;
         } else {
-          btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:border-emerald-400 transition";
+          btn.className = "px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:border-emerald-400 transition";
           btn.innerText = dayLabels[d];
         }
       }
@@ -628,7 +769,7 @@
 
     function toggleRewardsPanel() {
       rewardsExpanded = !rewardsExpanded;
-      document.getElementById("rewardsPanel").classList.toggle("hidden", !rewardsExpanded);
+      document.getElementById("rewardsPanelGrid").classList.toggle("hidden", !rewardsExpanded);
       document.getElementById("rewardToggleIcon").innerText = rewardsExpanded ? "▼" : "▶";
     }
 
@@ -636,7 +777,7 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
       } catch (e) {
-        alert("Dung lượng ảnh quá lớn, vui lòng chọn ảnh nhẹ hơn.");
+        alert("Dung lượng dữ liệu quá lớn, vui lòng xóa bớt ảnh nặng hoặc lịch sử cũ.");
       }
       updateKidCardsUI();
     }
@@ -646,13 +787,11 @@
       renderAll();
     }
 
-    // Checkbox per day (T2 -> CN): checked = 1 full day score, unchecked = 0
     function onDayCheckboxChange(itemId, dayIndex, checked) {
       const profile = appData[currentKid];
       if (!profile.counts[itemId]) profile.counts[itemId] = [0, 0, 0, 0, 0, 0, 0];
       profile.counts[itemId][dayIndex] = checked ? 1 : 0;
 
-      // Clear manual override so "Số lần" reflects checked days automatically
       if (profile.manualCounts) delete profile.manualCounts[itemId];
 
       const rowCnt = profile.counts[itemId].reduce((a, b) => a + (b ? 1 : 0), 0);
@@ -666,7 +805,6 @@
       saveData();
     }
 
-    // Select or clear all 7 days for a specific row
     function toggleRowSelectAll(itemId, checked) {
       const profile = appData[currentKid];
       const newVal = checked ? 1 : 0;
@@ -675,7 +813,6 @@
       renderAll();
     }
 
-    // Direct input in "Số lần" column (e.g., 2 -> 2 * pts = 4, 6 -> 6 * pts = 12)
     function onManualCountInput(itemId, inputEl) {
       const profile = appData[currentKid];
       const raw = inputEl.value.trim();
@@ -692,7 +829,6 @@
       saveData();
     }
 
-    // Toggle all plus items for a specific weekday index (0=Mon..6=Sun)
     function toggleDayAllGood(dayIdx) {
       const profile = appData[currentKid];
       const plusItems = CRITERIA.filter(c => c.type === "plus");
@@ -742,6 +878,7 @@
     }
 
     function renderAll() {
+      applyViewMode();
       const profile = appData[currentKid];
       document.getElementById("kidName").value = profile.name;
       document.getElementById("weekLabel").value = profile.weekLabel;
@@ -916,15 +1053,227 @@
       saveData();
     }
 
-    function resetCurrentWeek() {
-      if (!confirm("Chuyển sang tuần mới? Điểm còn lại sẽ chuyển thành 'Điểm tuần trước' và bảng tuần được làm mới.")) return;
+    // Build a complete snapshot object of the current week for a kid profile
+    function buildWeekSnapshot(profile) {
+      const bal = computeKidBalance(profile);
+      const details = [];
+      CRITERIA.forEach(item => {
+        const cnt = getEffectiveRowCount(profile, item.id);
+        if (cnt > 0) {
+          details.push({
+            id: item.id,
+            type: item.type,
+            title: item.title,
+            ptsPerUnit: item.pts,
+            count: cnt,
+            totalPts: cnt * item.pts,
+            days: [...(profile.counts[item.id] || [0,0,0,0,0,0,0])]
+          });
+        }
+      });
+
+      return {
+        id: "wk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        savedAt: new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+        weekLabel: profile.weekLabel || "Tuần chưa đặt tên",
+        prevPoints: parseInt(profile.prevPoints) || 0,
+        ptsPlus: bal.ptsPlus,
+        ptsMinus: bal.ptsMinus,
+        netWeek: bal.netWeek,
+        redeemedPoints: parseInt(profile.redeemedPoints) || 0,
+        endingBalance: bal.available,
+        rewardNote: profile.rewardNote || "",
+        details: details
+      };
+    }
+
+    // Increment week number automatically if label contains "Tuần X"
+    function getNextWeekLabel(currentLabel) {
+      const match = (currentLabel || "").match(/Tuần\s*(\d+)/i);
+      if (match) {
+        const nextNum = parseInt(match[1]) + 1;
+        return `Tuần ${nextNum}`;
+      }
+      return "Tuần mới";
+    }
+
+    // Archive current week into history AND reset table for the new week
+    function archiveAndResetCurrentWeek() {
       const profile = appData[currentKid];
-      profile.prevPoints = parseInt(document.getElementById("nextWeekBalance").innerText) || 0;
+      const kidName = profile.name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
+      const bal = computeKidBalance(profile);
+
+      if (!confirm(
+        `Lưu "${profile.weekLabel}" của ${kidName} vào Lịch sử và bắt đầu tuần mới?
+
+` +
+        `• Tổng cộng điểm tuần này: +${bal.ptsPlus}
+` +
+        `• Tổng điểm trừ tuần này: ${bal.ptsMinus}
+` +
+        `• Điểm còn lại chuyển sang tuần sau: ${bal.available} điểm`
+      )) return;
+
+      const snapshot = buildWeekSnapshot(profile);
+      profile.history.unshift(snapshot);
+
+      profile.prevPoints = bal.available;
+      profile.weekLabel = getNextWeekLabel(profile.weekLabel);
       profile.redeemedPoints = 0;
       profile.rewardNote = "";
       profile.counts = {};
       profile.manualCounts = {};
+
       renderAll();
+      alert(`Đã lưu "${snapshot.weekLabel}" của ${kidName} vào Lịch sử tuần!`);
+    }
+
+    // Save snapshot into history without resetting current week
+    function saveCurrentWeekSnapshotOnly() {
+      const profile = appData[historyKid];
+      const kidName = profile.name || (historyKid === "be1" ? "Bé 1" : "Bé 2");
+      const snapshot = buildWeekSnapshot(profile);
+      profile.history.unshift(snapshot);
+      saveData();
+      renderHistoryModal();
+      alert(`Đã lưu bản ghi "${snapshot.weekLabel}" cho ${kidName}!`);
+    }
+
+    function openHistoryModal() {
+      historyKid = currentKid;
+      expandedHistoryId = null;
+      document.getElementById("historyModal").classList.remove("hidden");
+      renderHistoryModal();
+    }
+
+    function closeHistoryModal() {
+      document.getElementById("historyModal").classList.add("hidden");
+    }
+
+    function switchHistoryKid(kidKey) {
+      historyKid = kidKey;
+      expandedHistoryId = null;
+      renderHistoryModal();
+    }
+
+    function toggleHistoryDetail(recordId) {
+      expandedHistoryId = (expandedHistoryId === recordId) ? null : recordId;
+      renderHistoryModal();
+    }
+
+    function deleteHistoryRecord(recordId) {
+      if (!confirm("Bạn có chắc muốn xóa bản ghi lịch sử tuần này không?")) return;
+      const profile = appData[historyKid];
+      profile.history = profile.history.filter(item => item.id !== recordId);
+      saveData();
+      renderHistoryModal();
+    }
+
+    function renderHistoryModal() {
+      const tab1 = document.getElementById("histTab-be1");
+      const tab2 = document.getElementById("histTab-be2");
+      tab1.innerText = `Lịch sử ${appData.be1.name || "Bé 1"} (${appData.be1.history.length})`;
+      tab2.innerText = `Lịch sử ${appData.be2.name || "Bé 2"} (${appData.be2.history.length})`;
+
+      if (historyKid === "be1") {
+        tab1.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#2c4a52] text-white transition";
+        tab2.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 transition";
+      } else {
+        tab2.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#2c4a52] text-white transition";
+        tab1.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 transition";
+      }
+
+      const container = document.getElementById("historyContent");
+      const profile = appData[historyKid];
+      const list = profile.history || [];
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+            <div class="text-3xl mb-2">📭</div>
+            <div class="font-bold text-slate-700">Chưa có tuần nào được lưu cho ${profile.name || "bé"}</div>
+            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              Khi kết thúc một tuần, hãy bấm nút <strong>"Chốt & Sang tuần mới"</strong> (hoặc bấm <strong>"+ Lưu bản ghi tuần hiện tại ngay"</strong> ở trên) để lưu lại toàn bộ điểm số và chi tiết hành vi của tuần đó.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      list.forEach(rec => {
+        const isExpanded = expandedHistoryId === rec.id;
+        const netLabel = rec.netWeek > 0 ? `+${rec.netWeek}` : `${rec.netWeek}`;
+        const plusDetails = (rec.details || []).filter(d => d.type === "plus");
+        const minusDetails = (rec.details || []).filter(d => d.type === "minus");
+
+        html += `
+          <div class="border border-slate-200 rounded-xl overflow-hidden shadow-2xs bg-white">
+            <div class="p-4 bg-slate-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-extrabold text-base text-[#2c4a52]">${rec.weekLabel}</span>
+                  <span class="text-[11px] text-slate-400">• Lưu lúc ${rec.savedAt}</span>
+                </div>
+                <div class="mt-1.5 flex flex-wrap gap-2 text-xs">
+                  <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-medium">Tuần trước: <b>${rec.prevPoints}</b></span>
+                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Cộng: +${rec.ptsPlus}</span>
+                  <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">Trừ: ${rec.ptsMinus}</span>
+                  <span class="px-2 py-0.5 rounded bg-teal-100 text-teal-900 font-bold">Thực đạt: ${netLabel}</span>
+                  <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">Đổi quà: -${rec.redeemedPoints}</span>
+                  <span class="px-2.5 py-0.5 rounded bg-slate-800 text-amber-300 font-extrabold">Còn lại: ${rec.endingBalance} đ</span>
+                </div>
+                ${rec.rewardNote ? `<div class="text-xs text-slate-600 mt-1.5 italic">🎁 Ghi chú quà: ${rec.rewardNote}</div>` : ""}
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="toggleHistoryDetail('${rec.id}')"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 transition">
+                  ${isExpanded ? "Thu gọn ▲" : "Xem chi tiết ▼"}
+                </button>
+                <button type="button" onclick="deleteHistoryRecord('${rec.id}')"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition">
+                  Xóa
+                </button>
+              </div>
+            </div>
+
+            ${isExpanded ? `
+              <div class="p-4 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-white">
+                <div>
+                  <div class="font-bold text-emerald-800 uppercase mb-2">Hành vi tốt đã thực hiện (${plusDetails.length} mục)</div>
+                  ${plusDetails.length === 0 ? '<div class="text-slate-400 italic">Không có mục cộng điểm nào.</div>' : `
+                    <ul class="space-y-1.5">
+                      ${plusDetails.map(d => `
+                        <li class="flex justify-between items-center p-2 rounded bg-emerald-50/60 border border-emerald-100">
+                          <span class="text-slate-700 pr-2">${d.title} <span class="text-slate-400">(${d.count} lần)</span></span>
+                          <span class="font-bold text-emerald-700 shrink-0">+${d.totalPts} đ</span>
+                        </li>
+                      `).join("")}
+                    </ul>
+                  `}
+                </div>
+
+                <div>
+                  <div class="font-bold text-rose-800 uppercase mb-2">Vi phạm cần khắc phục (${minusDetails.length} mục)</div>
+                  ${minusDetails.length === 0 ? '<div class="text-emerald-700 italic">Tuyệt vời! Bé không mắc lỗi vi phạm nào trong tuần này.</div>' : `
+                    <ul class="space-y-1.5">
+                      ${minusDetails.map(d => `
+                        <li class="flex justify-between items-center p-2 rounded bg-rose-50/60 border border-rose-100">
+                          <span class="text-slate-700 pr-2">${d.title} <span class="text-slate-400">(${d.count} lần)</span></span>
+                          <span class="font-bold text-rose-700 shrink-0">${d.totalPts} đ</span>
+                        </li>
+                      `).join("")}
+                    </ul>
+                  `}
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
     }
 
     function exportBackup() {
@@ -948,9 +1297,10 @@
             ["be1", "be2"].forEach(k => {
               if (!appData[k].manualCounts) appData[k].manualCounts = {};
               if (!appData[k].counts) appData[k].counts = {};
+              if (!Array.isArray(appData[k].history)) appData[k].history = [];
             });
             renderAll();
-            alert("Khôi phục dữ liệu thành công!");
+            alert("Khôi phục dữ liệu (bao gồm cả lịch sử các tuần) thành công!");
           }
         } catch {
           alert("File sao lưu không hợp lệ.");
