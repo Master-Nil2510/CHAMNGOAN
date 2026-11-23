@@ -157,9 +157,35 @@
           Đang xem & chấm điểm cho: <strong id="activeKidBannerName" class="text-[#2c4a52] text-base">Bé 1</strong>
         </div>
       </div>
-      <button type="button" onclick="toggleThemePanel()" class="text-xs font-semibold text-[#2c4a52] hover:underline">
-        + Đổi ảnh đại diện / ảnh bìa / hình nền
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="quickMarkDayAllGood()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
+          ✓ Ngày hôm nay bé ngoan (Tích đủ mục cộng)
+        </button>
+        <button type="button" onclick="quickMarkBothKidsTodayGood()"
+          class="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm">
+          ✓✓ Cả 2 bé hôm nay đều ngoan
+        </button>
+        <button type="button" onclick="toggleThemePanel()" class="text-xs font-semibold text-[#2c4a52] hover:underline ml-1">
+          + Ảnh giao diện
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Day Selection Bar (T2 -> CN) -->
+    <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div class="text-xs font-bold text-slate-600 uppercase tracking-wide">
+        Chọn nhanh cả ngày (Tích / Bỏ tích toàn bộ mục cộng điểm của ngày):
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        <button type="button" onclick="toggleDayAllGood(0)" id="qday-0" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 2</button>
+        <button type="button" onclick="toggleDayAllGood(1)" id="qday-1" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 3</button>
+        <button type="button" onclick="toggleDayAllGood(2)" id="qday-2" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 4</button>
+        <button type="button" onclick="toggleDayAllGood(3)" id="qday-3" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 5</button>
+        <button type="button" onclick="toggleDayAllGood(4)" id="qday-4" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 6</button>
+        <button type="button" onclick="toggleDayAllGood(5)" id="qday-5" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Thứ 7</button>
+        <button type="button" onclick="toggleDayAllGood(6)" id="qday-6" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition">Chủ Nhật</button>
+      </div>
     </div>
 
     <!-- Metadata & Summary Cards -->
@@ -195,7 +221,7 @@
     <!-- Main Tracking Table -->
     <div class="bg-white/95 backdrop-blur rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[860px]">
+        <table class="w-full text-left border-collapse min-w-[940px]">
           <thead>
             <tr class="bg-[#2c4a52] text-white text-xs uppercase">
               <th class="py-3 px-2.5 w-10 text-center">STT</th>
@@ -208,6 +234,7 @@
               <th class="py-3 px-1 w-13 text-center">T6</th>
               <th class="py-3 px-1 w-13 text-center">T7</th>
               <th class="py-3 px-1 w-13 text-center">CN</th>
+              <th class="py-3 px-2 w-20 text-center" title="Chọn tất cả 7 ngày trong tuần cho hàng này">Chọn tất cả</th>
               <th class="py-3 px-2 w-16 text-center">Số lần</th>
               <th class="py-3 px-3 w-20 text-center">Tổng</th>
             </tr>
@@ -336,7 +363,7 @@
       { id: "m15", type: "minus", title: "Thái độ hậm hực, dùng từ ngữ chưa chuẩn mực", desc: "Không hợp tác khi được nhắc nhở, nói trống không hoặc cãi lại", pts: -3 }
     ];
 
-    const STORAGE_KEY = "kid_habit_tracker_v4";
+    const STORAGE_KEY = "kid_habit_tracker_v6";
     let currentKid = "be1";
     let rewardsExpanded = true;
 
@@ -359,7 +386,6 @@
       be2: createEmptyProfile("Bé 2")
     };
 
-    // Compress uploaded image automatically so localStorage stays fast and never hits quota
     function compressImageFile(file, maxDimension, quality, callback) {
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -444,14 +470,12 @@
       const profile = appData[currentKid];
       const bodyEl = document.getElementById("appBody");
 
-      // 1. Global App Wallpaper
       if (appData.wallpaper) {
         bodyEl.style.backgroundImage = `linear-gradient(rgba(243, 246, 248, 0.78), rgba(243, 246, 248, 0.78)), url('${appData.wallpaper}')`;
       } else {
         bodyEl.style.backgroundImage = "none";
       }
 
-      // 2. Avatars on selector buttons
       ["be1", "be2"].forEach(k => {
         const imgEl = document.getElementById(`btnAvatar-${k}`);
         if (appData[k].avatar) {
@@ -462,7 +486,6 @@
         }
       });
 
-      // 3. Active kid avatar & theme panel preview
       const activeAvatarEl = document.getElementById("activeKidAvatar");
       const previewAvatarEl = document.getElementById("avatarPreview");
       const bannerAvatarEl = document.getElementById("bannerAvatarImg");
@@ -479,7 +502,6 @@
         bannerAvatarEl.classList.add("hidden");
       }
 
-      // 4. Active kid cover banner
       const bannerContainer = document.getElementById("kidBannerContainer");
       if (profile.banner) {
         document.getElementById("kidBannerImg").src = profile.banner;
@@ -535,6 +557,26 @@
         document.getElementById("activeKidBannerName").innerText = appData.be2.name || "Bé 2";
       }
       applyCustomPhotos();
+      updateQuickDayButtonsUI();
+    }
+
+    function updateQuickDayButtonsUI() {
+      const profile = appData[currentKid];
+      const dayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+      const plusItems = CRITERIA.filter(c => c.type === "plus");
+
+      for (let d = 0; d < 7; d++) {
+        const btn = document.getElementById(`qday-${d}`);
+        if (!btn) continue;
+        const allChecked = plusItems.every(item => ((profile.counts[item.id] || [])[d] || 0) >= 1);
+        if (allChecked) {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold border border-emerald-600 bg-emerald-600 text-white shadow-sm transition";
+          btn.innerText = `✓ ${dayLabels[d]}`;
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:border-emerald-400 transition";
+          btn.innerText = dayLabels[d];
+        }
+      }
     }
 
     function toggleRewardsPanel() {
@@ -557,6 +599,62 @@
       renderAll();
     }
 
+    // Select or clear all 7 days for a specific row
+    function toggleRowSelectAll(itemId, checked) {
+      const profile = appData[currentKid];
+      const newVal = checked ? 1 : 0;
+      profile.counts[itemId] = [newVal, newVal, newVal, newVal, newVal, newVal, newVal];
+      renderAll();
+    }
+
+    // Toggle all plus items for a specific weekday index (0=Mon..6=Sun)
+    function toggleDayAllGood(dayIdx) {
+      const profile = appData[currentKid];
+      const plusItems = CRITERIA.filter(c => c.type === "plus");
+      const allChecked = plusItems.every(item => ((profile.counts[item.id] || [])[dayIdx] || 0) >= 1);
+      const newVal = allChecked ? 0 : 1;
+
+      plusItems.forEach(item => {
+        if (!profile.counts[item.id]) profile.counts[item.id] = [0,0,0,0,0,0,0];
+        profile.counts[item.id][dayIdx] = newVal;
+      });
+      renderAll();
+    }
+
+    // Quick helper: mark all plus items as 1 for today's weekday index for active kid
+    function quickMarkDayAllGood() {
+      const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+      const jsDay = new Date().getDay();
+      const dayIdx = jsDay === 0 ? 6 : jsDay - 1;
+      const kidLabel = appData[currentKid].name || (currentKid === "be1" ? "Bé 1" : "Bé 2");
+      if (!confirm(`Đánh dấu tất cả mục cộng điểm cho ${kidLabel} vào ${dayNames[dayIdx]} hôm nay?`)) return;
+
+      const profile = appData[currentKid];
+      CRITERIA.filter(c => c.type === "plus").forEach(item => {
+        if (!profile.counts[item.id]) profile.counts[item.id] = [0,0,0,0,0,0,0];
+        profile.counts[item.id][dayIdx] = 1;
+      });
+      renderAll();
+    }
+
+    // Quick helper: mark all plus items as 1 for today's weekday index for BOTH kids
+    function quickMarkBothKidsTodayGood() {
+      const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+      const jsDay = new Date().getDay();
+      const dayIdx = jsDay === 0 ? 6 : jsDay - 1;
+      const n1 = appData.be1.name || "Bé 1";
+      const n2 = appData.be2.name || "Bé 2";
+      if (!confirm(`Đánh dấu tất cả mục cộng điểm cho cả ${n1} và ${n2} vào ${dayNames[dayIdx]} hôm nay?`)) return;
+
+      ["be1", "be2"].forEach(k => {
+        CRITERIA.filter(c => c.type === "plus").forEach(item => {
+          if (!appData[k].counts[item.id]) appData[k].counts[item.id] = [0,0,0,0,0,0,0];
+          appData[k].counts[item.id][dayIdx] = 1;
+        });
+      });
+      renderAll();
+    }
+
     function renderAll() {
       const profile = appData[currentKid];
       document.getElementById("kidName").value = profile.name;
@@ -568,7 +666,7 @@
       const tbody = document.getElementById("trackerBody");
       tbody.innerHTML = `
         <tr class="bg-[#d8e8e2]">
-          <td colspan="12" class="py-2 px-4 font-bold text-xs uppercase text-[#1f363d]">
+          <td colspan="13" class="py-2 px-4 font-bold text-xs uppercase text-[#1f363d]">
             Phần I: Cộng điểm — Thói quen tốt & Khích lệ
           </td>
         </tr>
@@ -579,11 +677,12 @@
         <tr class="bg-emerald-50 font-bold text-emerald-800 border-t-2 border-emerald-300">
           <td colspan="3" class="py-2 px-4 text-right text-xs uppercase">Tổng cộng điểm khích lệ:</td>
           ${[0,1,2,3,4,5,6].map(d => `<td id="dayPlus-${d}" class="py-2 px-1 text-center text-xs">+0</td>`).join("")}
+          <td class="py-2 px-1 text-center text-[11px] text-emerald-600">—</td>
           <td id="cntPlusTotal" class="py-2 px-2 text-center text-xs">0</td>
           <td id="ptsPlusTotal" class="py-2 px-3 text-center text-sm">+0</td>
         </tr>
         <tr class="bg-[#f4dfd8]">
-          <td colspan="12" class="py-2 px-4 font-bold text-xs uppercase text-[#1f363d]">
+          <td colspan="13" class="py-2 px-4 font-bold text-xs uppercase text-[#1f363d]">
             Phần II: Trừ điểm — Vi phạm cần khắc phục
           </td>
         </tr>
@@ -594,12 +693,14 @@
         <tr class="bg-rose-50 font-bold text-rose-800 border-t-2 border-rose-300">
           <td colspan="3" class="py-2 px-4 text-right text-xs uppercase">Tổng điểm bị trừ:</td>
           ${[0,1,2,3,4,5,6].map(d => `<td id="dayMinus-${d}" class="py-2 px-1 text-center text-xs">0</td>`).join("")}
+          <td class="py-2 px-1 text-center text-[11px] text-rose-600">—</td>
           <td id="cntMinusTotal" class="py-2 px-2 text-center text-xs">0</td>
           <td id="ptsMinusTotal" class="py-2 px-3 text-center text-sm">0</td>
         </tr>
         <tr class="bg-slate-200 font-extrabold text-slate-900 border-t-2 border-slate-400">
           <td colspan="3" class="py-2.5 px-4 text-right text-xs uppercase">Tổng điểm thực đạt trong tuần (Cộng - Trừ):</td>
           ${[0,1,2,3,4,5,6].map(d => `<td id="dayNet-${d}" class="py-2 px-1 text-center text-xs">0</td>`).join("")}
+          <td class="py-2 px-1 text-center text-[11px] text-slate-600">—</td>
           <td id="cntNetTotal" class="py-2 px-2 text-center text-xs">0</td>
           <td id="ptsNetTotal" class="py-2 px-3 text-center text-sm">0</td>
         </tr>
@@ -612,6 +713,7 @@
     function createRow(item, stt) {
       const profile = appData[currentKid];
       const arr = profile.counts[item.id] || [0, 0, 0, 0, 0, 0, 0];
+      const allSelected = arr.every(v => (parseInt(v) || 0) >= 1);
       const tr = document.createElement("tr");
       tr.className = "hover:bg-slate-50 transition";
 
@@ -642,6 +744,13 @@
           <span class="inline-block px-2 py-0.5 rounded font-bold text-xs ${badgeClass}">${ptsLabel}</span>
         </td>
         ${dayInputsHtml}
+        <td class="py-2 px-1 text-center">
+          <label class="inline-flex items-center justify-center cursor-pointer" title="Chọn tất cả 7 ngày trong tuần cho hàng này">
+            <input type="checkbox" ${allSelected ? "checked" : ""}
+              onchange="toggleRowSelectAll('${item.id}', this.checked)"
+              class="w-4 h-4 accent-[#2c4a52] rounded cursor-pointer" />
+          </label>
+        </td>
         <td id="rowCnt-${item.id}" class="py-2 px-2 text-center text-xs font-medium text-slate-600">0</td>
         <td id="rowPts-${item.id}" class="py-2 px-3 text-center text-xs font-bold ${isPlus ? 'text-emerald-700' : 'text-rose-700'}">0</td>
       `;
